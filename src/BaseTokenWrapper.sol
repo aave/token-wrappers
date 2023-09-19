@@ -15,7 +15,6 @@ import {IAToken} from 'aave-v3-core/contracts/interfaces/IAToken.sol';
  */
 abstract contract BaseTokenWrapper is Ownable {
   using GPv2SafeERC20 for IERC20;
-  using GPv2SafeERC20 for IERC20WithPermit;
 
   struct PermitSignature {
     uint256 deadline;
