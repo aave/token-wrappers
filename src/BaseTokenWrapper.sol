@@ -85,10 +85,14 @@ abstract contract BaseTokenWrapper is Ownable {
    * @notice Withdraws the wrapped token from the Pool and unwraps it, sending to the recipient
    * @param amount The amount of the token to withdraw from the Pool and unwrap
    * @param to The address that will receive the unwrapped token
+   * @return The final amount withdrawn from the Pool, post-unwrapping
    */
-  function withdrawToken(uint256 amount, address to) external {
+  function withdrawToken(
+    uint256 amount,
+    address to
+  ) external returns (uint256) {
     IAToken aTokenOut = IAToken(POOL.getReserveData(TOKEN_OUT).aTokenAddress);
-    _withdrawToken(amount, to, aTokenOut);
+    return _withdrawToken(amount, to, aTokenOut);
   }
 
   /**
@@ -96,12 +100,13 @@ abstract contract BaseTokenWrapper is Ownable {
    * @param amount The amount of the token to withdraw from the Pool and unwrap
    * @param to The address that will receive the unwrapped token
    * @param signature The EIP-712 signature data used for permit
+   * @return The final amount withdrawn from the Pool, post-unwrapping
    */
   function withdrawTokenWithPermit(
     uint256 amount,
     address to,
     PermitSignature calldata signature
-  ) external {
+  ) external returns (uint256) {
     IAToken aTokenOut = IAToken(POOL.getReserveData(TOKEN_OUT).aTokenAddress);
     aTokenOut.permit(
       msg.sender,
@@ -112,7 +117,7 @@ abstract contract BaseTokenWrapper is Ownable {
       signature.r,
       signature.s
     );
-    _withdrawToken(amount, to, aTokenOut);
+    return _withdrawToken(amount, to, aTokenOut);
   }
 
   /**
@@ -180,12 +185,13 @@ abstract contract BaseTokenWrapper is Ownable {
    * @param amount The amount of the token to withdraw from the Pool and unwrap
    * @param to The address that will receive the unwrapped token
    * @param aTokenOut The AToken that will be withdrawn from the Pool
+   * @return The final amount withdrawn from the Pool, post-unwrapping
    */
   function _withdrawToken(
     uint256 amount,
     address to,
     IAToken aTokenOut
-  ) internal {
+  ) internal returns (uint256) {
     require(amount > 0, 'INSUFFICIENT_AMOUNT_TO_WITHDRAW');
     if (amount == type(uint256).max) {
       amount = aTokenOut.balanceOf(msg.sender);
@@ -195,6 +201,7 @@ abstract contract BaseTokenWrapper is Ownable {
     uint256 amountUnwrapped = _unwrapTokenOut(amount);
     require(amountUnwrapped > 0, 'INSUFFICIENT_UNWRAPPED_TOKEN_RECEIVED');
     IERC20(TOKEN_IN).safeTransfer(to, amountUnwrapped);
+    return amountUnwrapped;
   }
 
   /**

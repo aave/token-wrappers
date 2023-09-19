@@ -216,7 +216,7 @@ abstract contract BaseTokenWrapperTest is Test {
 
     vm.startPrank(ALICE);
     IAToken(aTokenOut).approve(address(tokenWrapper), aTokenBalance);
-    tokenWrapper.withdrawToken(aTokenBalance, ALICE);
+    uint256 withdrawnAmount = tokenWrapper.withdrawToken(aTokenBalance, ALICE);
     vm.stopPrank();
 
     assertEq(
@@ -228,6 +228,11 @@ abstract contract BaseTokenWrapperTest is Test {
       estimateFinalBalance - tokenIn.balanceOf(ALICE),
       1,
       'Unexpected ending tokenIn balance'
+    );
+    assertLe(
+      withdrawnAmount - tokenIn.balanceOf(ALICE),
+      1,
+      'Unexpected withdraw return/balance mismatch'
     );
   }
 
@@ -248,7 +253,10 @@ abstract contract BaseTokenWrapperTest is Test {
 
     vm.startPrank(ALICE);
     IAToken(aTokenOut).approve(address(tokenWrapper), type(uint256).max);
-    tokenWrapper.withdrawToken(type(uint256).max, ALICE);
+    uint256 withdrawnAmount = tokenWrapper.withdrawToken(
+      type(uint256).max,
+      ALICE
+    );
     vm.stopPrank();
 
     assertEq(
@@ -260,6 +268,11 @@ abstract contract BaseTokenWrapperTest is Test {
       estimateFinalBalance - tokenIn.balanceOf(ALICE),
       1,
       'Unexpected ending tokenIn balance'
+    );
+    assertLe(
+      withdrawnAmount - tokenIn.balanceOf(ALICE),
+      1,
+      'Unexpected withdraw return/balance mismatch'
     );
   }
 
@@ -281,7 +294,7 @@ abstract contract BaseTokenWrapperTest is Test {
 
     vm.startPrank(ALICE);
     IAToken(aTokenOut).approve(address(tokenWrapper), aTokenBalance);
-    tokenWrapper.withdrawToken(aTokenBalance, BOB);
+    uint256 withdrawnAmount = tokenWrapper.withdrawToken(aTokenBalance, BOB);
     vm.stopPrank();
 
     assertEq(
@@ -294,6 +307,11 @@ abstract contract BaseTokenWrapperTest is Test {
       estimateFinalBalance - tokenIn.balanceOf(BOB),
       1,
       'Unexpected ending tokenIn balance'
+    );
+    assertLe(
+      withdrawnAmount - tokenIn.balanceOf(BOB),
+      1,
+      'Unexpected withdraw return/balance mismatch'
     );
   }
 
@@ -335,7 +353,11 @@ abstract contract BaseTokenWrapperTest is Test {
       .PermitSignature(deadline, v, r, s);
 
     vm.startPrank(ALICE);
-    tokenWrapper.withdrawTokenWithPermit(aTokenBalance, ALICE, signature);
+    uint256 withdrawnAmount = tokenWrapper.withdrawTokenWithPermit(
+      aTokenBalance,
+      ALICE,
+      signature
+    );
     vm.stopPrank();
 
     assertEq(
@@ -347,6 +369,11 @@ abstract contract BaseTokenWrapperTest is Test {
       estimateFinalBalance - tokenIn.balanceOf(ALICE),
       1,
       'Unexpected ending tokenIn balance'
+    );
+    assertLe(
+      withdrawnAmount - tokenIn.balanceOf(ALICE),
+      1,
+      'Unexpected withdraw return/balance mismatch'
     );
   }
 
