@@ -14,7 +14,7 @@ contract SavingsDaiTokenWrapperTest is BaseTokenWrapperTest {
     pool = 0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
     tokenWrapper = new SavingsDaiTokenWrapper(DAI, SDAI, pool, OWNER);
     aTokenOut = ASDAI;
-    tokenInDecimals = 6;
+    tokenInDecimals = 18;
     permitSupported = false;
   }
 
