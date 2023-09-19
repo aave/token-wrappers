@@ -373,7 +373,7 @@ abstract contract BaseTokenWrapperTest is Test {
     );
 
     vm.prank(OWNER);
-    tokenWrapper.rescueTokens(MOCK_TOKEN);
+    tokenWrapper.rescueTokens(MOCK_TOKEN, OWNER, dealAmountScaled);
 
     assertEq(
       MOCK_TOKEN.balanceOf(address(tokenWrapper)),
@@ -391,7 +391,7 @@ abstract contract BaseTokenWrapperTest is Test {
     MintableERC20 MOCK_TOKEN = new MintableERC20('Mock Token', 'MOCK', 18);
     vm.prank(ALICE);
     vm.expectRevert('Ownable: caller is not the owner');
-    tokenWrapper.rescueTokens(MOCK_TOKEN);
+    tokenWrapper.rescueTokens(MOCK_TOKEN, OWNER, 0);
   }
 
   function _dealTokenIn(address user, uint256 amount) internal virtual {

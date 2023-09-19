@@ -119,8 +119,8 @@ abstract contract BaseTokenWrapper is Ownable {
    * @notice Provides way for the contract owner to rescue ERC-20 tokens
    * @param token The address of the token to withdraw from this contract
    */
-  function rescueTokens(IERC20 token) external onlyOwner {
-    token.safeTransfer(owner(), token.balanceOf(address(this)));
+  function rescueTokens(IERC20 token, address to, uint256 amount) external onlyOwner {
+    token.safeTransfer(to, amount);
   }
 
   /**
