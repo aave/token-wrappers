@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity ^0.8.10;
 
+import {IERC20} from 'aave-v3-core/contracts/dependencies/openzeppelin/contracts/IERC20.sol';
 import {BaseTokenWrapperTest} from './BaseTokenWrapper.t.sol';
 import {StakedEthTokenWrapper} from '../src/StakedEthTokenWrapper.sol';
 
@@ -19,7 +20,26 @@ contract StakedEthTokenWrapperTest is BaseTokenWrapperTest {
   }
 
   function testConstructor() public override {
-    new StakedEthTokenWrapper(STETH, WSTETH, pool, OWNER);
+    StakedEthTokenWrapper tempTokenWrapper = new StakedEthTokenWrapper(
+      STETH,
+      WSTETH,
+      pool,
+      OWNER
+    );
+    assertEq(tempTokenWrapper.TOKEN_IN(), STETH, 'Unexpected TOKEN_IN');
+    assertEq(tempTokenWrapper.TOKEN_OUT(), WSTETH, 'Unexpected TOKEN_OUT');
+    assertEq(address(tempTokenWrapper.POOL()), pool, 'Unexpected POOL');
+    assertEq(tempTokenWrapper.owner(), OWNER, 'Unexpected owner');
+    assertEq(
+      IERC20(WSTETH).allowance(address(tempTokenWrapper), pool),
+      type(uint256).max,
+      'Unexpected TOKEN_OUT allowance'
+    );
+    assertEq(
+      IERC20(STETH).allowance(address(tempTokenWrapper), WSTETH),
+      type(uint256).max,
+      'Unexpected TOKEN_IN allowance'
+    );
   }
 
   function _dealTokenIn(address user, uint256 amount) internal override {
