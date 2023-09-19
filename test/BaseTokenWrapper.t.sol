@@ -387,11 +387,44 @@ abstract contract BaseTokenWrapperTest is Test {
     );
   }
 
-  function testRevertRescueTokensNotOwner() public {
+  function testRescueETH() public {
+    uint256 ethAmount = 100 ether;
+    assertEq(
+      address(tokenWrapper).balance,
+      0,
+      'Unexpected initial contract ETH balance'
+    );
+    vm.deal(address(tokenWrapper), ethAmount);
+    assertEq(
+      address(tokenWrapper).balance,
+      ethAmount,
+      'Unexpected post-deal ETH balance'
+    );
+    assertEq(OWNER.balance, 0, 'Unexpected owner ETH balance');
+
+    vm.prank(OWNER);
+    tokenWrapper.rescueETH(OWNER, ethAmount);
+
+    assertEq(
+      address(tokenWrapper).balance,
+      0,
+      'Unexpected post-rescue contract ETH balance'
+    );
+    assertEq(
+      OWNER.balance,
+      ethAmount,
+      'Unexpected post-rescue owner ETH balance'
+    );
+  }
+
+  function testRevertRescueNotOwner() public {
     MintableERC20 MOCK_TOKEN = new MintableERC20('Mock Token', 'MOCK', 18);
-    vm.prank(ALICE);
+    vm.startPrank(ALICE);
     vm.expectRevert('Ownable: caller is not the owner');
     tokenWrapper.rescueTokens(MOCK_TOKEN, OWNER, 0);
+    vm.expectRevert('Ownable: caller is not the owner');
+    tokenWrapper.rescueETH(OWNER, 0);
+    vm.stopPrank();
   }
 
   function _dealTokenIn(address user, uint256 amount) internal virtual {

@@ -121,8 +121,22 @@ abstract contract BaseTokenWrapper is Ownable {
    * @param to The address of the recipient of rescued funds
    * @param amount The amount of token rescued
    */
-  function rescueTokens(IERC20 token, address to, uint256 amount) external onlyOwner {
+  function rescueTokens(
+    IERC20 token,
+    address to,
+    uint256 amount
+  ) external onlyOwner {
     token.safeTransfer(to, amount);
+  }
+
+  /**
+   * @notice Provides way for the contract owner to rescue ETH
+   * @param to The address of the recipient of rescued funds
+   * @param amount The amount of ETH rescued
+   */
+  function rescueETH(address to, uint256 amount) external onlyOwner {
+    (bool success, ) = to.call{value: amount}(new bytes(0));
+    require(success, 'ETH_TRANSFER_FAILED');
   }
 
   /**
