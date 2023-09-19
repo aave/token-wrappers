@@ -364,7 +364,7 @@ abstract contract BaseTokenWrapperTest is Test {
     assertEq(
       MOCK_TOKEN.balanceOf(address(tokenWrapper)),
       dealAmountScaled,
-      'Unexpected starting tokenWraper token balance'
+      'Unexpected starting tokenWrapper token balance'
     );
     assertEq(
       MOCK_TOKEN.balanceOf(OWNER),
@@ -378,7 +378,7 @@ abstract contract BaseTokenWrapperTest is Test {
     assertEq(
       MOCK_TOKEN.balanceOf(address(tokenWrapper)),
       0,
-      'Unexpected final tokenWraper token balance'
+      'Unexpected final tokenWrapper token balance'
     );
     assertEq(
       MOCK_TOKEN.balanceOf(OWNER),
