@@ -14,7 +14,7 @@ import {IBaseTokenWrapper} from './interfaces/IBaseTokenWrapper.sol';
  * @author Aave
  * @notice Base contract to enable intermediate wrap/unwrap of a token upon supply/withdraw from a Pool
  */
-abstract contract BaseTokenWrapper is Ownable {
+abstract contract BaseTokenWrapper is IBaseTokenWrapper, Ownable {
   using GPv2SafeERC20 for IERC20;
 
   address public immutable TOKEN_IN;
@@ -37,10 +37,7 @@ abstract contract BaseTokenWrapper is Ownable {
   }
 
   /**
-   * @notice Converts amount of token to wrapped version and supplies to Pool
-   * @param amount The amount of the token to wrap and supply to the Pool
-   * @param onBehalfOf The address that will receive the aTokens
-   * @param referralCode Code used to register the integrator originating the operation, for potential rewards
+   * @inheritdoc IBaseTokenWrapper
    */
   function supplyToken(
     uint256 amount,
@@ -51,17 +48,13 @@ abstract contract BaseTokenWrapper is Ownable {
   }
 
   /**
-   * @notice Converts amount of token to wrapped version and supplies to Pool, using permit for allowance
-   * @param amount The amount of the token to wrap and supply to the Pool
-   * @param onBehalfOf The address that will receive the aTokens
-   * @param referralCode Code used to register the integrator originating the operation, for potential rewards
-   * @param signature The EIP-712 signature data used for permit
+   * @inheritdoc IBaseTokenWrapper
    */
   function supplyTokenWithPermit(
     uint256 amount,
     address onBehalfOf,
     uint16 referralCode,
-    IBaseTokenWrapper.PermitSignature calldata signature
+    PermitSignature calldata signature
   ) external {
     IERC20WithPermit(TOKEN_IN).permit(
       msg.sender,
@@ -76,10 +69,7 @@ abstract contract BaseTokenWrapper is Ownable {
   }
 
   /**
-   * @notice Withdraws the wrapped token from the Pool and unwraps it, sending to the recipient
-   * @param amount The amount of the token to withdraw from the Pool and unwrap
-   * @param to The address that will receive the unwrapped token
-   * @return The final amount withdrawn from the Pool, post-unwrapping
+   * @inheritdoc IBaseTokenWrapper
    */
   function withdrawToken(
     uint256 amount,
@@ -90,16 +80,12 @@ abstract contract BaseTokenWrapper is Ownable {
   }
 
   /**
-   * @notice Withdraws the wrapped token from the Pool and unwraps it, sending to the recipient, using permit for allowance
-   * @param amount The amount of the token to withdraw from the Pool and unwrap
-   * @param to The address that will receive the unwrapped token
-   * @param signature The EIP-712 signature data used for permit
-   * @return The final amount withdrawn from the Pool, post-unwrapping
+   * @inheritdoc IBaseTokenWrapper
    */
   function withdrawTokenWithPermit(
     uint256 amount,
     address to,
-    IBaseTokenWrapper.PermitSignature calldata signature
+    PermitSignature calldata signature
   ) external returns (uint256) {
     IAToken aTokenOut = IAToken(POOL.getReserveData(TOKEN_OUT).aTokenAddress);
     aTokenOut.permit(
@@ -115,10 +101,7 @@ abstract contract BaseTokenWrapper is Ownable {
   }
 
   /**
-   * @notice Provides way for the contract owner to rescue ERC-20 tokens
-   * @param token The address of the token to withdraw from this contract
-   * @param to The address of the recipient of rescued funds
-   * @param amount The amount of token rescued
+   * @inheritdoc IBaseTokenWrapper
    */
   function rescueTokens(
     IERC20 token,
@@ -129,9 +112,7 @@ abstract contract BaseTokenWrapper is Ownable {
   }
 
   /**
-   * @notice Provides way for the contract owner to rescue ETH
-   * @param to The address of the recipient of rescued funds
-   * @param amount The amount of ETH rescued
+   * @inheritdoc IBaseTokenWrapper
    */
   function rescueETH(address to, uint256 amount) external onlyOwner {
     (bool success, ) = to.call{value: amount}(new bytes(0));
@@ -139,18 +120,14 @@ abstract contract BaseTokenWrapper is Ownable {
   }
 
   /**
-   * @notice Computes the amount of tokenOut received for a provided amount of tokenIn
-   * @param amount The amount of tokenIn
-   * @return The amount of tokenOut
+   * @inheritdoc IBaseTokenWrapper
    */
   function getTokenOutForTokenIn(
     uint256 amount
   ) external view virtual returns (uint256);
 
   /**
-   * @notice Computes the amount of tokenIn received for a provided amount of tokenOut
-   * @param amount The amount of tokenOut
-   * @return The amount of tokenIn
+   * @inheritdoc IBaseTokenWrapper
    */
   function getTokenInForTokenOut(
     uint256 amount
