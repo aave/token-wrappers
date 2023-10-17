@@ -7,6 +7,7 @@ import {IPool} from 'aave-v3-core/contracts/interfaces/IPool.sol';
 import {IAToken} from 'aave-v3-core/contracts/interfaces/IAToken.sol';
 import {MintableERC20} from 'aave-v3-core/contracts/mocks/tokens/MintableERC20.sol';
 import {BaseTokenWrapper} from '../src/BaseTokenWrapper.sol';
+import {IBaseTokenWrapper} from '../src/interfaces/IBaseTokenWrapper.sol';
 
 interface IERC2612 {
   function nonces(address owner) external view returns (uint256);
@@ -146,7 +147,7 @@ abstract contract BaseTokenWrapperTest is Test {
     );
 
     (uint8 v, bytes32 r, bytes32 s) = vm.sign(ALICE_KEY, digest);
-    BaseTokenWrapper.PermitSignature memory signature = BaseTokenWrapper
+    IBaseTokenWrapper.PermitSignature memory signature = IBaseTokenWrapper
       .PermitSignature(deadline, v, r, s);
 
     if (permitSupported) {
@@ -349,7 +350,7 @@ abstract contract BaseTokenWrapperTest is Test {
     );
 
     (uint8 v, bytes32 r, bytes32 s) = vm.sign(ALICE_KEY, digest);
-    BaseTokenWrapper.PermitSignature memory signature = BaseTokenWrapper
+    IBaseTokenWrapper.PermitSignature memory signature = IBaseTokenWrapper
       .PermitSignature(deadline, v, r, s);
 
     vm.startPrank(ALICE);

@@ -7,6 +7,7 @@ import {IERC20WithPermit} from 'aave-v3-core/contracts/interfaces/IERC20WithPerm
 import {GPv2SafeERC20} from 'aave-v3-core/contracts/dependencies/gnosis/contracts/GPv2SafeERC20.sol';
 import {IPool} from 'aave-v3-core/contracts/interfaces/IPool.sol';
 import {IAToken} from 'aave-v3-core/contracts/interfaces/IAToken.sol';
+import {IBaseTokenWrapper} from './interfaces/IBaseTokenWrapper.sol';
 
 /**
  * @title BaseTokenWrapper
@@ -15,13 +16,6 @@ import {IAToken} from 'aave-v3-core/contracts/interfaces/IAToken.sol';
  */
 abstract contract BaseTokenWrapper is Ownable {
   using GPv2SafeERC20 for IERC20;
-
-  struct PermitSignature {
-    uint256 deadline;
-    uint8 v;
-    bytes32 r;
-    bytes32 s;
-  }
 
   address public immutable TOKEN_IN;
   address public immutable TOKEN_OUT;
@@ -67,7 +61,7 @@ abstract contract BaseTokenWrapper is Ownable {
     uint256 amount,
     address onBehalfOf,
     uint16 referralCode,
-    PermitSignature calldata signature
+    IBaseTokenWrapper.PermitSignature calldata signature
   ) external {
     IERC20WithPermit(TOKEN_IN).permit(
       msg.sender,
@@ -105,7 +99,7 @@ abstract contract BaseTokenWrapper is Ownable {
   function withdrawTokenWithPermit(
     uint256 amount,
     address to,
-    PermitSignature calldata signature
+    IBaseTokenWrapper.PermitSignature calldata signature
   ) external returns (uint256) {
     IAToken aTokenOut = IAToken(POOL.getReserveData(TOKEN_OUT).aTokenAddress);
     aTokenOut.permit(
