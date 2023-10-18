@@ -237,6 +237,31 @@ abstract contract BaseTokenWrapperTest is Test {
     );
   }
 
+  function testWithdrawTokenInsufficientBalance() public {
+    testSupplyToken();
+    IERC20 tokenIn = IERC20(tokenWrapper.TOKEN_IN());
+
+    uint256 aTokenBalance = IAToken(aTokenOut).balanceOf(ALICE);
+    assertGt(aTokenBalance, 0, 'Unexpected starting aToken balance');
+    assertEq(
+      tokenIn.balanceOf(ALICE),
+      0,
+      'Unexpected starting tokenIn balance'
+    );
+    uint256 estimateFinalBalance = tokenWrapper.getTokenInForTokenOut(
+      aTokenBalance
+    );
+
+    vm.startPrank(ALICE);
+    IAToken(aTokenOut).approve(address(tokenWrapper), aTokenBalance);
+    vm.expectRevert('INSUFFICIENT_BALANCE_TO_WITHDRAW');
+    uint256 withdrawnAmount = tokenWrapper.withdrawToken(
+      aTokenBalance + 1,
+      ALICE
+    );
+    vm.stopPrank();
+  }
+
   function testWithdrawTokenMaxValue() public {
     testSupplyToken();
     IERC20 tokenIn = IERC20(tokenWrapper.TOKEN_IN());
