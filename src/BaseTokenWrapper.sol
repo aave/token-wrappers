@@ -36,9 +36,7 @@ abstract contract BaseTokenWrapper is IBaseTokenWrapper, Ownable {
     IERC20(tokenOut).approve(pool, type(uint256).max);
   }
 
-  /**
-   * @inheritdoc IBaseTokenWrapper
-   */
+  /// @inheritdoc IBaseTokenWrapper
   function supplyToken(
     uint256 amount,
     address onBehalfOf,
@@ -47,9 +45,7 @@ abstract contract BaseTokenWrapper is IBaseTokenWrapper, Ownable {
     _supplyToken(amount, onBehalfOf, referralCode);
   }
 
-  /**
-   * @inheritdoc IBaseTokenWrapper
-   */
+  /// @inheritdoc IBaseTokenWrapper
   function supplyTokenWithPermit(
     uint256 amount,
     address onBehalfOf,
@@ -68,9 +64,7 @@ abstract contract BaseTokenWrapper is IBaseTokenWrapper, Ownable {
     _supplyToken(amount, onBehalfOf, referralCode);
   }
 
-  /**
-   * @inheritdoc IBaseTokenWrapper
-   */
+  /// @inheritdoc IBaseTokenWrapper
   function withdrawToken(
     uint256 amount,
     address to
@@ -79,9 +73,7 @@ abstract contract BaseTokenWrapper is IBaseTokenWrapper, Ownable {
     return _withdrawToken(amount, to, aTokenOut);
   }
 
-  /**
-   * @inheritdoc IBaseTokenWrapper
-   */
+  /// @inheritdoc IBaseTokenWrapper
   function withdrawTokenWithPermit(
     uint256 amount,
     address to,
@@ -100,9 +92,7 @@ abstract contract BaseTokenWrapper is IBaseTokenWrapper, Ownable {
     return _withdrawToken(amount, to, aTokenOut);
   }
 
-  /**
-   * @inheritdoc IBaseTokenWrapper
-   */
+  /// @inheritdoc IBaseTokenWrapper
   function rescueTokens(
     IERC20 token,
     address to,
@@ -111,24 +101,18 @@ abstract contract BaseTokenWrapper is IBaseTokenWrapper, Ownable {
     token.safeTransfer(to, amount);
   }
 
-  /**
-   * @inheritdoc IBaseTokenWrapper
-   */
+  /// @inheritdoc IBaseTokenWrapper
   function rescueETH(address to, uint256 amount) external onlyOwner {
     (bool success, ) = to.call{value: amount}(new bytes(0));
     require(success, 'ETH_TRANSFER_FAILED');
   }
 
-  /**
-   * @inheritdoc IBaseTokenWrapper
-   */
+  /// @inheritdoc IBaseTokenWrapper
   function getTokenOutForTokenIn(
     uint256 amount
   ) external view virtual returns (uint256);
 
-  /**
-   * @inheritdoc IBaseTokenWrapper
-   */
+  /// @inheritdoc IBaseTokenWrapper
   function getTokenInForTokenOut(
     uint256 amount
   ) external view virtual returns (uint256);
@@ -167,6 +151,10 @@ abstract contract BaseTokenWrapper is IBaseTokenWrapper, Ownable {
     if (amount == type(uint256).max) {
       amount = aTokenOut.balanceOf(msg.sender);
     }
+    require(
+      amount <= aTokenOut.balanceOf(msg.sender),
+      'INSUFFICIENT_BALANCE_TO_WITHDRAW'
+    );
     aTokenOut.transferFrom(msg.sender, address(this), amount);
     POOL.withdraw(TOKEN_OUT, amount, address(this));
     uint256 amountUnwrapped = _unwrapTokenOut(amount);
