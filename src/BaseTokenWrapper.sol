@@ -148,13 +148,11 @@ abstract contract BaseTokenWrapper is IBaseTokenWrapper, Ownable {
     IAToken aTokenOut
   ) internal returns (uint256) {
     require(amount > 0, 'INSUFFICIENT_AMOUNT_TO_WITHDRAW');
+    uint256 aTokenOutBalance = aTokenOut.balanceOf(msg.sender);
     if (amount == type(uint256).max) {
-      amount = aTokenOut.balanceOf(msg.sender);
+      amount = aTokenOutBalance;
     }
-    require(
-      amount <= aTokenOut.balanceOf(msg.sender),
-      'INSUFFICIENT_BALANCE_TO_WITHDRAW'
-    );
+    require(amount <= aTokenOutBalance, 'INSUFFICIENT_BALANCE_TO_WITHDRAW');
     aTokenOut.transferFrom(msg.sender, address(this), amount);
     POOL.withdraw(TOKEN_OUT, amount, address(this));
     uint256 amountUnwrapped = _unwrapTokenOut(amount);

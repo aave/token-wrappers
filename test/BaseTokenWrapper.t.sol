@@ -22,6 +22,7 @@ abstract contract BaseTokenWrapperTest is Test {
     );
   uint256 constant DEAL_AMOUNT = 1_000;
   uint16 constant REFERRAL_CODE = 0;
+  uint256 constant MAX_DEAL_AMOUNT = 1_000;
   address immutable ALICE;
   uint256 immutable ALICE_KEY;
   address immutable BOB;
@@ -255,10 +256,7 @@ abstract contract BaseTokenWrapperTest is Test {
     vm.startPrank(ALICE);
     IAToken(aTokenOut).approve(address(tokenWrapper), aTokenBalance);
     vm.expectRevert('INSUFFICIENT_BALANCE_TO_WITHDRAW');
-    uint256 withdrawnAmount = tokenWrapper.withdrawToken(
-      aTokenBalance + 1,
-      ALICE
-    );
+    tokenWrapper.withdrawToken(aTokenBalance + 1, ALICE);
     vm.stopPrank();
   }
 
@@ -295,6 +293,7 @@ abstract contract BaseTokenWrapperTest is Test {
       1,
       'Unexpected ending tokenIn balance'
     );
+
     assertLe(
       withdrawnAmount - tokenIn.balanceOf(ALICE),
       1,
@@ -478,6 +477,66 @@ abstract contract BaseTokenWrapperTest is Test {
     vm.expectRevert('Ownable: caller is not the owner');
     tokenWrapper.rescueETH(OWNER, 0);
     vm.stopPrank();
+  }
+
+  function testFuzzSupplyToken(uint256 amount, address referee) public {
+    IERC20 tokenIn = IERC20(tokenWrapper.TOKEN_IN());
+    vm.assume(referee != address(0));
+    amount = bound(amount, 1, MAX_DEAL_AMOUNT);
+    vm.assume(
+      tokenIn.balanceOf(ALICE) == 0 &&
+        IAToken(aTokenOut).balanceOf(ALICE) == 0 &&
+        IAToken(aTokenOut).balanceOf(referee) == 0
+    );
+
+    uint256 amountScaled = amount * 10 ** tokenInDecimals;
+    _dealTokenIn(ALICE, amountScaled);
+    uint256 estimateFinalBalance = tokenWrapper.getTokenOutForTokenIn(
+      amountScaled
+    );
+
+    vm.startPrank(ALICE);
+    tokenIn.approve(address(tokenWrapper), amountScaled);
+    tokenWrapper.supplyToken(amountScaled, referee, REFERRAL_CODE);
+    vm.stopPrank();
+
+    assertEq(tokenIn.balanceOf(ALICE), 0, 'Unexpected ending tokenIn balance');
+    assertEq(
+      IAToken(aTokenOut).balanceOf(referee),
+      estimateFinalBalance,
+      'Unexpected ending aToken balance'
+    );
+  }
+
+  function testFuzzWithdrawToken(uint256 aTokenBalance) public {
+    testSupplyToken();
+    IERC20 tokenIn = IERC20(tokenWrapper.TOKEN_IN());
+
+    uint256 aTokenBalanceOriginal = IAToken(aTokenOut).balanceOf(ALICE);
+    assertGt(aTokenBalanceOriginal, 0, 'Unexpected starting aToken balance');
+    assertEq(
+      tokenIn.balanceOf(ALICE),
+      0,
+      'Unexpected starting tokenIn balance'
+    );
+    aTokenBalance = bound(aTokenBalance, 1000, aTokenBalanceOriginal - 1); //using 1000 as min to ignore dust amounts
+    console2.log(aTokenBalance);
+    uint256 estimateFinalBalance = tokenWrapper.getTokenInForTokenOut(
+      aTokenBalance
+    );
+
+    vm.startPrank(ALICE);
+    IAToken(aTokenOut).approve(address(tokenWrapper), aTokenBalance);
+    uint256 withdrawnAmount = tokenWrapper.withdrawToken(aTokenBalance, ALICE);
+    vm.stopPrank();
+
+    assertGt(
+      IAToken(aTokenOut).balanceOf(ALICE),
+      0,
+      'Unexpected ending aToken balance'
+    );
+    assertGt(tokenIn.balanceOf(ALICE), 0, 'Unexpected ending tokenIn balance');
+    assertGt(withdrawnAmount, 0, 'Unexpected withdraw return/balance mismatch');
   }
 
   function _dealTokenIn(address user, uint256 amount) internal virtual {
