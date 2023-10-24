@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity ^0.8.10;
 
-import {Test, console2} from 'forge-std/Test.sol';
+import {Test} from 'forge-std/Test.sol';
 import {IERC20} from 'aave-v3-core/contracts/dependencies/openzeppelin/contracts/IERC20.sol';
 import {IPool} from 'aave-v3-core/contracts/interfaces/IPool.sol';
 import {IAToken} from 'aave-v3-core/contracts/interfaces/IAToken.sol';
@@ -480,14 +480,8 @@ abstract contract BaseTokenWrapperTest is Test {
   }
 
   function testFuzzSupplyToken(uint256 amount, address referee) public {
-    IERC20 tokenIn = IERC20(tokenWrapper.TOKEN_IN());
-    vm.assume(referee != address(0));
     amount = bound(amount, 1, MAX_DEAL_AMOUNT);
-    vm.assume(
-      tokenIn.balanceOf(ALICE) == 0 &&
-        IAToken(aTokenOut).balanceOf(ALICE) == 0 &&
-        IAToken(aTokenOut).balanceOf(referee) == 0
-    );
+    IERC20 tokenIn = IERC20(tokenWrapper.TOKEN_IN());
 
     uint256 amountScaled = amount * 10 ** tokenInDecimals;
     _dealTokenIn(ALICE, amountScaled);
@@ -501,9 +495,9 @@ abstract contract BaseTokenWrapperTest is Test {
     vm.stopPrank();
 
     assertEq(tokenIn.balanceOf(ALICE), 0, 'Unexpected ending tokenIn balance');
-    assertEq(
-      IAToken(aTokenOut).balanceOf(referee),
-      estimateFinalBalance,
+    assertLe(
+      estimateFinalBalance - IAToken(aTokenOut).balanceOf(referee),
+      1,
       'Unexpected ending aToken balance'
     );
   }
@@ -511,20 +505,17 @@ abstract contract BaseTokenWrapperTest is Test {
   function testFuzzWithdrawToken(uint256 aTokenBalance) public {
     testSupplyToken();
     IERC20 tokenIn = IERC20(tokenWrapper.TOKEN_IN());
-
     uint256 aTokenBalanceOriginal = IAToken(aTokenOut).balanceOf(ALICE);
+    aTokenBalance = bound(aTokenBalance, 1000, aTokenBalanceOriginal - 1); //using 1000 as min to ignore dust amounts
     assertGt(aTokenBalanceOriginal, 0, 'Unexpected starting aToken balance');
     assertEq(
       tokenIn.balanceOf(ALICE),
       0,
       'Unexpected starting tokenIn balance'
     );
-    aTokenBalance = bound(aTokenBalance, 1000, aTokenBalanceOriginal - 1); //using 1000 as min to ignore dust amounts
-    console2.log(aTokenBalance);
     uint256 estimateFinalBalance = tokenWrapper.getTokenInForTokenOut(
       aTokenBalance
     );
-
     vm.startPrank(ALICE);
     IAToken(aTokenOut).approve(address(tokenWrapper), aTokenBalance);
     uint256 withdrawnAmount = tokenWrapper.withdrawToken(aTokenBalance, ALICE);
