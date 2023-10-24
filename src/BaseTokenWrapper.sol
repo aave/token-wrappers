@@ -17,8 +17,13 @@ import {IBaseTokenWrapper} from './interfaces/IBaseTokenWrapper.sol';
 abstract contract BaseTokenWrapper is Ownable, IBaseTokenWrapper {
   using GPv2SafeERC20 for IERC20;
 
+  /// @inheritdoc IBaseTokenWrapper
   address public immutable TOKEN_IN;
+
+  /// @inheritdoc IBaseTokenWrapper
   address public immutable TOKEN_OUT;
+
+  /// @inheritdoc IBaseTokenWrapper
   IPool public immutable POOL;
 
   /**

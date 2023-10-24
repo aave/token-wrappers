@@ -2,6 +2,7 @@
 pragma solidity ^0.8.10;
 
 import {IERC20} from 'aave-v3-core/contracts/dependencies/openzeppelin/contracts/IERC20.sol';
+import {IPool} from 'aave-v3-core/contracts/interfaces/IPool.sol';
 
 interface IBaseTokenWrapper {
   struct PermitSignature {
@@ -90,4 +91,22 @@ interface IBaseTokenWrapper {
   function getTokenInForTokenOut(
     uint256 amount
   ) external view returns (uint256);
+
+  /**
+   * @notice Returns the address of tokenIn for the wrapper contract
+   * @return The address of tokenIn
+   */
+  function TOKEN_IN() external view returns (address);
+
+  /**
+   * @notice Returns the address of tokenOut for the wrapper contract
+   * @return The address of tokenOut
+   */
+  function TOKEN_OUT() external view returns (address);
+
+  /**
+   * @notice Returns the address of Pool contract
+   * @return The address of Pool
+   */
+  function POOL() external view returns (IPool);
 }
