@@ -17,12 +17,13 @@ interface IBaseTokenWrapper {
    * @param amount The amount of the token to wrap and supply to the Pool
    * @param onBehalfOf The address that will receive the aTokens
    * @param referralCode Code used to register the integrator originating the operation, for potential rewards
+   * @return The final amount supplied to the Pool, post-wrapping
    */
   function supplyToken(
     uint256 amount,
     address onBehalfOf,
     uint16 referralCode
-  ) external;
+  ) external returns (uint256);
 
   /**
    * @notice Converts amount of token to wrapped version and supplies to Pool, using permit for allowance
@@ -30,13 +31,14 @@ interface IBaseTokenWrapper {
    * @param onBehalfOf The address that will receive the aTokens
    * @param referralCode Code used to register the integrator originating the operation, for potential rewards
    * @param signature The EIP-712 signature data used for permit
+   * @return The final amount supplied to the Pool, post-wrapping
    */
   function supplyTokenWithPermit(
     uint256 amount,
     address onBehalfOf,
     uint16 referralCode,
     PermitSignature calldata signature
-  ) external;
+  ) external returns (uint256);
 
   /**
    * @notice Withdraws the wrapped token from the Pool and unwraps it, sending to the recipient
