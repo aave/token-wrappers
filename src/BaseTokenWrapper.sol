@@ -46,8 +46,8 @@ abstract contract BaseTokenWrapper is Ownable, IBaseTokenWrapper {
     uint256 amount,
     address onBehalfOf,
     uint16 referralCode
-  ) external {
-    _supplyToken(amount, onBehalfOf, referralCode);
+  ) external returns (uint256) {
+    return _supplyToken(amount, onBehalfOf, referralCode);
   }
 
   /// @inheritdoc IBaseTokenWrapper
@@ -56,7 +56,7 @@ abstract contract BaseTokenWrapper is Ownable, IBaseTokenWrapper {
     address onBehalfOf,
     uint16 referralCode,
     PermitSignature calldata signature
-  ) external {
+  ) external returns (uint256) {
     IERC20WithPermit(TOKEN_IN).permit(
       msg.sender,
       address(this),
@@ -66,7 +66,7 @@ abstract contract BaseTokenWrapper is Ownable, IBaseTokenWrapper {
       signature.r,
       signature.s
     );
-    _supplyToken(amount, onBehalfOf, referralCode);
+    return _supplyToken(amount, onBehalfOf, referralCode);
   }
 
   /// @inheritdoc IBaseTokenWrapper
@@ -127,17 +127,19 @@ abstract contract BaseTokenWrapper is Ownable, IBaseTokenWrapper {
    * @param amount The amount of the token to wrap and supply to the Pool
    * @param onBehalfOf The address that will receive the aTokens
    * @param referralCode Code used to register the integrator originating the operation, for potential rewards
+   * @return The final amount supplied to the Pool, post-wrapping
    */
   function _supplyToken(
     uint256 amount,
     address onBehalfOf,
     uint16 referralCode
-  ) internal {
+  ) internal returns (uint256) {
     require(amount > 0, 'INSUFFICIENT_AMOUNT_TO_SUPPLY');
     IERC20(TOKEN_IN).safeTransferFrom(msg.sender, address(this), amount);
     uint256 amountWrapped = _wrapTokenIn(amount);
     require(amountWrapped > 0, 'INSUFFICIENT_WRAPPED_TOKEN_RECEIVED');
     POOL.supply(TOKEN_OUT, amountWrapped, onBehalfOf, referralCode);
+    return amountWrapped;
   }
 
   /**
