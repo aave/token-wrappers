@@ -14,7 +14,7 @@ import {IBaseTokenWrapper} from './interfaces/IBaseTokenWrapper.sol';
  * @author Aave
  * @notice Base contract to enable intermediate wrap/unwrap of a token upon supply/withdraw from a Pool
  */
-abstract contract BaseTokenWrapper is IBaseTokenWrapper, Ownable {
+abstract contract BaseTokenWrapper is Ownable, IBaseTokenWrapper {
   using GPv2SafeERC20 for IERC20;
 
   address public immutable TOKEN_IN;
@@ -153,9 +153,12 @@ abstract contract BaseTokenWrapper is IBaseTokenWrapper, Ownable {
       amount = aTokenOutBalance;
     }
     require(amount <= aTokenOutBalance, 'INSUFFICIENT_BALANCE_TO_WITHDRAW');
+    uint256 aTokenBalanceBefore = aTokenOut.balanceOf(address(this));
     aTokenOut.transferFrom(msg.sender, address(this), amount);
-    POOL.withdraw(TOKEN_OUT, amount, address(this));
-    uint256 amountUnwrapped = _unwrapTokenOut(amount);
+    uint256 aTokenAmountReceived = aTokenOut.balanceOf(address(this)) -
+      aTokenBalanceBefore;
+    POOL.withdraw(TOKEN_OUT, aTokenAmountReceived, address(this));
+    uint256 amountUnwrapped = _unwrapTokenOut(aTokenAmountReceived);
     require(amountUnwrapped > 0, 'INSUFFICIENT_UNWRAPPED_TOKEN_RECEIVED');
     IERC20(TOKEN_IN).safeTransfer(to, amountUnwrapped);
     return amountUnwrapped;
