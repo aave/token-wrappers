@@ -62,13 +62,22 @@ abstract contract BaseTokenWrapperTest is Test {
 
     vm.startPrank(ALICE);
     tokenIn.approve(address(tokenWrapper), dealAmountScaled);
-    tokenWrapper.supplyToken(dealAmountScaled, ALICE, REFERRAL_CODE);
+    uint256 suppliedAmount = tokenWrapper.supplyToken(
+      dealAmountScaled,
+      ALICE,
+      REFERRAL_CODE
+    );
     vm.stopPrank();
 
     assertEq(tokenIn.balanceOf(ALICE), 0, 'Unexpected ending tokenIn balance');
     assertEq(
+      suppliedAmount,
       IAToken(aTokenOut).balanceOf(ALICE),
-      estimateFinalBalance,
+      'Unexpected supply return/balance mismatch'
+    );
+    assertLe(
+      estimateFinalBalance - IAToken(aTokenOut).balanceOf(ALICE),
+      1,
       'Unexpected ending aToken balance'
     );
   }
@@ -99,13 +108,22 @@ abstract contract BaseTokenWrapperTest is Test {
 
     vm.startPrank(ALICE);
     tokenIn.approve(address(tokenWrapper), dealAmountScaled);
-    tokenWrapper.supplyToken(dealAmountScaled, BOB, REFERRAL_CODE);
+    uint256 suppliedAmount = tokenWrapper.supplyToken(
+      dealAmountScaled,
+      BOB,
+      REFERRAL_CODE
+    );
     vm.stopPrank();
 
     assertEq(tokenIn.balanceOf(ALICE), 0, 'Unexpected ending tokenIn balance');
     assertEq(
+      suppliedAmount,
       IAToken(aTokenOut).balanceOf(BOB),
-      estimateFinalBalance,
+      'Unexpected supply return/balance mismatch'
+    );
+    assertLe(
+      estimateFinalBalance - IAToken(aTokenOut).balanceOf(BOB),
+      1,
       'Unexpected ending aToken balance'
     );
   }
@@ -153,7 +171,7 @@ abstract contract BaseTokenWrapperTest is Test {
 
     if (permitSupported) {
       vm.startPrank(ALICE);
-      tokenWrapper.supplyTokenWithPermit(
+      uint256 suppliedAmount = tokenWrapper.supplyTokenWithPermit(
         dealAmountScaled,
         ALICE,
         REFERRAL_CODE,
@@ -167,8 +185,13 @@ abstract contract BaseTokenWrapperTest is Test {
         'Unexpected ending tokenIn balance'
       );
       assertEq(
+        suppliedAmount,
         IAToken(aTokenOut).balanceOf(ALICE),
-        estimateFinalBalance,
+        'Unexpected supply return/balance mismatch'
+      );
+      assertLe(
+        estimateFinalBalance - IAToken(aTokenOut).balanceOf(ALICE),
+        1,
         'Unexpected ending aToken balance'
       );
     } else {
@@ -491,10 +514,19 @@ abstract contract BaseTokenWrapperTest is Test {
 
     vm.startPrank(ALICE);
     tokenIn.approve(address(tokenWrapper), amountScaled);
-    tokenWrapper.supplyToken(amountScaled, referee, REFERRAL_CODE);
+    uint256 suppliedAmount = tokenWrapper.supplyToken(
+      amountScaled,
+      referee,
+      REFERRAL_CODE
+    );
     vm.stopPrank();
 
     assertEq(tokenIn.balanceOf(ALICE), 0, 'Unexpected ending tokenIn balance');
+    assertEq(
+      suppliedAmount,
+      IAToken(aTokenOut).balanceOf(referee),
+      'Unexpected supply return/balance mismatch'
+    );
     assertLe(
       estimateFinalBalance - IAToken(aTokenOut).balanceOf(referee),
       1,
