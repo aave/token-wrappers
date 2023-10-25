@@ -95,20 +95,20 @@ interface IBaseTokenWrapper {
   ) external view returns (uint256);
 
   /**
-   * @notice Returns the address of tokenIn for the wrapper contract
+   * @notice Returns the address of the ERC-20 token that will be wrapped in supply operations
    * @return The address of tokenIn
    */
   function TOKEN_IN() external view returns (address);
 
   /**
-   * @notice Returns the address of tokenOut for the wrapper contract
+   * @notice Returns the address of the ERC-20 token received upon wrapping
    * @return The address of tokenOut
    */
   function TOKEN_OUT() external view returns (address);
 
   /**
-   * @notice Returns the address of Pool contract
-   * @return The address of Pool
+   * @notice Returns the address of the Aave Pool
+   * @return The address of the Aave Pool contract
    */
   function POOL() external view returns (IPool);
 }
