@@ -7,25 +7,23 @@ import {IERC20WithPermit} from 'aave-v3-core/contracts/interfaces/IERC20WithPerm
 import {GPv2SafeERC20} from 'aave-v3-core/contracts/dependencies/gnosis/contracts/GPv2SafeERC20.sol';
 import {IPool} from 'aave-v3-core/contracts/interfaces/IPool.sol';
 import {IAToken} from 'aave-v3-core/contracts/interfaces/IAToken.sol';
+import {IBaseTokenWrapper} from './interfaces/IBaseTokenWrapper.sol';
 
 /**
  * @title BaseTokenWrapper
  * @author Aave
  * @notice Base contract to enable intermediate wrap/unwrap of a token upon supply/withdraw from a Pool
  */
-abstract contract BaseTokenWrapper is Ownable {
+abstract contract BaseTokenWrapper is Ownable, IBaseTokenWrapper {
   using GPv2SafeERC20 for IERC20;
-  using GPv2SafeERC20 for IERC20WithPermit;
 
-  struct PermitSignature {
-    uint256 deadline;
-    uint8 v;
-    bytes32 r;
-    bytes32 s;
-  }
-
+  /// @inheritdoc IBaseTokenWrapper
   address public immutable TOKEN_IN;
+
+  /// @inheritdoc IBaseTokenWrapper
   address public immutable TOKEN_OUT;
+
+  /// @inheritdoc IBaseTokenWrapper
   IPool public immutable POOL;
 
   /**
@@ -43,12 +41,7 @@ abstract contract BaseTokenWrapper is Ownable {
     IERC20(tokenOut).approve(pool, type(uint256).max);
   }
 
-  /**
-   * @notice Converts amount of token to wrapped version and supplies to Pool
-   * @param amount The amount of the token to wrap and supply to the Pool
-   * @param onBehalfOf The address that will receive the aTokens
-   * @param referralCode Code used to register the integrator originating the operation, for potential rewards
-   */
+  /// @inheritdoc IBaseTokenWrapper
   function supplyToken(
     uint256 amount,
     address onBehalfOf,
@@ -57,13 +50,7 @@ abstract contract BaseTokenWrapper is Ownable {
     _supplyToken(amount, onBehalfOf, referralCode);
   }
 
-  /**
-   * @notice Converts amount of token to wrapped version and supplies to Pool, using permit for allowance
-   * @param amount The amount of the token to wrap and supply to the Pool
-   * @param onBehalfOf The address that will receive the aTokens
-   * @param referralCode Code used to register the integrator originating the operation, for potential rewards
-   * @param signature The EIP-712 signature data used for permit
-   */
+  /// @inheritdoc IBaseTokenWrapper
   function supplyTokenWithPermit(
     uint256 amount,
     address onBehalfOf,
@@ -82,27 +69,21 @@ abstract contract BaseTokenWrapper is Ownable {
     _supplyToken(amount, onBehalfOf, referralCode);
   }
 
-  /**
-   * @notice Withdraws the wrapped token from the Pool and unwraps it, sending to the recipient
-   * @param amount The amount of the token to withdraw from the Pool and unwrap
-   * @param to The address that will receive the unwrapped token
-   */
-  function withdrawToken(uint256 amount, address to) external {
+  /// @inheritdoc IBaseTokenWrapper
+  function withdrawToken(
+    uint256 amount,
+    address to
+  ) external returns (uint256) {
     IAToken aTokenOut = IAToken(POOL.getReserveData(TOKEN_OUT).aTokenAddress);
-    _withdrawToken(amount, to, aTokenOut);
+    return _withdrawToken(amount, to, aTokenOut);
   }
 
-  /**
-   * @notice Withdraws the wrapped token from the Pool and unwraps it, sending to the recipient, using permit for allowance
-   * @param amount The amount of the token to withdraw from the Pool and unwrap
-   * @param to The address that will receive the unwrapped token
-   * @param signature The EIP-712 signature data used for permit
-   */
+  /// @inheritdoc IBaseTokenWrapper
   function withdrawTokenWithPermit(
     uint256 amount,
     address to,
     PermitSignature calldata signature
-  ) external {
+  ) external returns (uint256) {
     IAToken aTokenOut = IAToken(POOL.getReserveData(TOKEN_OUT).aTokenAddress);
     aTokenOut.permit(
       msg.sender,
@@ -113,31 +94,30 @@ abstract contract BaseTokenWrapper is Ownable {
       signature.r,
       signature.s
     );
-    _withdrawToken(amount, to, aTokenOut);
+    return _withdrawToken(amount, to, aTokenOut);
   }
 
-  /**
-   * @notice Provides way for the contract owner to rescue ERC-20 tokens
-   * @param token The address of the token to withdraw from this contract
-   */
-  function rescueTokens(IERC20 token) external onlyOwner {
-    token.safeTransfer(owner(), token.balanceOf(address(this)));
+  /// @inheritdoc IBaseTokenWrapper
+  function rescueTokens(
+    IERC20 token,
+    address to,
+    uint256 amount
+  ) external onlyOwner {
+    token.safeTransfer(to, amount);
   }
 
-  /**
-   * @notice Computes the amount of tokenOut received for a provided amount of tokenIn
-   * @param amount The amount of tokenIn
-   * @return The amount of tokenOut
-   */
+  /// @inheritdoc IBaseTokenWrapper
+  function rescueETH(address to, uint256 amount) external onlyOwner {
+    (bool success, ) = to.call{value: amount}(new bytes(0));
+    require(success, 'ETH_TRANSFER_FAILED');
+  }
+
+  /// @inheritdoc IBaseTokenWrapper
   function getTokenOutForTokenIn(
     uint256 amount
   ) external view virtual returns (uint256);
 
-  /**
-   * @notice Computes the amount of tokenIn received for a provided amount of tokenOut
-   * @param amount The amount of tokenOut
-   * @return The amount of tokenIn
-   */
+  /// @inheritdoc IBaseTokenWrapper
   function getTokenInForTokenOut(
     uint256 amount
   ) external view virtual returns (uint256);
@@ -165,21 +145,28 @@ abstract contract BaseTokenWrapper is Ownable {
    * @param amount The amount of the token to withdraw from the Pool and unwrap
    * @param to The address that will receive the unwrapped token
    * @param aTokenOut The AToken that will be withdrawn from the Pool
+   * @return The final amount withdrawn from the Pool, post-unwrapping
    */
   function _withdrawToken(
     uint256 amount,
     address to,
     IAToken aTokenOut
-  ) internal {
+  ) internal returns (uint256) {
     require(amount > 0, 'INSUFFICIENT_AMOUNT_TO_WITHDRAW');
+    uint256 aTokenOutBalance = aTokenOut.balanceOf(msg.sender);
     if (amount == type(uint256).max) {
-      amount = aTokenOut.balanceOf(msg.sender);
+      amount = aTokenOutBalance;
     }
+    require(amount <= aTokenOutBalance, 'INSUFFICIENT_BALANCE_TO_WITHDRAW');
+    uint256 aTokenBalanceBefore = aTokenOut.balanceOf(address(this));
     aTokenOut.transferFrom(msg.sender, address(this), amount);
-    POOL.withdraw(TOKEN_OUT, amount, address(this));
-    uint256 amountUnwrapped = _unwrapTokenOut(amount);
+    uint256 aTokenAmountReceived = aTokenOut.balanceOf(address(this)) -
+      aTokenBalanceBefore;
+    POOL.withdraw(TOKEN_OUT, aTokenAmountReceived, address(this));
+    uint256 amountUnwrapped = _unwrapTokenOut(aTokenAmountReceived);
     require(amountUnwrapped > 0, 'INSUFFICIENT_UNWRAPPED_TOKEN_RECEIVED');
     IERC20(TOKEN_IN).safeTransfer(to, amountUnwrapped);
+    return amountUnwrapped;
   }
 
   /**

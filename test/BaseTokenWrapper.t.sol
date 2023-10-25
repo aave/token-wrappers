@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity ^0.8.10;
 
-import {Test, console2} from 'forge-std/Test.sol';
+import {Test} from 'forge-std/Test.sol';
 import {IERC20} from 'aave-v3-core/contracts/dependencies/openzeppelin/contracts/IERC20.sol';
 import {IPool} from 'aave-v3-core/contracts/interfaces/IPool.sol';
 import {IAToken} from 'aave-v3-core/contracts/interfaces/IAToken.sol';
 import {MintableERC20} from 'aave-v3-core/contracts/mocks/tokens/MintableERC20.sol';
 import {BaseTokenWrapper} from '../src/BaseTokenWrapper.sol';
+import {IBaseTokenWrapper} from '../src/interfaces/IBaseTokenWrapper.sol';
 
 interface IERC2612 {
   function nonces(address owner) external view returns (uint256);
@@ -21,6 +22,7 @@ abstract contract BaseTokenWrapperTest is Test {
     );
   uint256 constant DEAL_AMOUNT = 1_000;
   uint16 constant REFERRAL_CODE = 0;
+  uint256 constant MAX_DEAL_AMOUNT = 1_000;
   address immutable ALICE;
   uint256 immutable ALICE_KEY;
   address immutable BOB;
@@ -146,7 +148,7 @@ abstract contract BaseTokenWrapperTest is Test {
     );
 
     (uint8 v, bytes32 r, bytes32 s) = vm.sign(ALICE_KEY, digest);
-    BaseTokenWrapper.PermitSignature memory signature = BaseTokenWrapper
+    IBaseTokenWrapper.PermitSignature memory signature = IBaseTokenWrapper
       .PermitSignature(deadline, v, r, s);
 
     if (permitSupported) {
@@ -216,7 +218,7 @@ abstract contract BaseTokenWrapperTest is Test {
 
     vm.startPrank(ALICE);
     IAToken(aTokenOut).approve(address(tokenWrapper), aTokenBalance);
-    tokenWrapper.withdrawToken(aTokenBalance, ALICE);
+    uint256 withdrawnAmount = tokenWrapper.withdrawToken(aTokenBalance, ALICE);
     vm.stopPrank();
 
     assertEq(
@@ -229,6 +231,33 @@ abstract contract BaseTokenWrapperTest is Test {
       1,
       'Unexpected ending tokenIn balance'
     );
+    assertLe(
+      withdrawnAmount - tokenIn.balanceOf(ALICE),
+      1,
+      'Unexpected withdraw return/balance mismatch'
+    );
+  }
+
+  function testWithdrawTokenInsufficientBalance() public {
+    testSupplyToken();
+    IERC20 tokenIn = IERC20(tokenWrapper.TOKEN_IN());
+
+    uint256 aTokenBalance = IAToken(aTokenOut).balanceOf(ALICE);
+    assertGt(aTokenBalance, 0, 'Unexpected starting aToken balance');
+    assertEq(
+      tokenIn.balanceOf(ALICE),
+      0,
+      'Unexpected starting tokenIn balance'
+    );
+    uint256 estimateFinalBalance = tokenWrapper.getTokenInForTokenOut(
+      aTokenBalance
+    );
+
+    vm.startPrank(ALICE);
+    IAToken(aTokenOut).approve(address(tokenWrapper), aTokenBalance);
+    vm.expectRevert('INSUFFICIENT_BALANCE_TO_WITHDRAW');
+    tokenWrapper.withdrawToken(aTokenBalance + 1, ALICE);
+    vm.stopPrank();
   }
 
   function testWithdrawTokenMaxValue() public {
@@ -248,7 +277,10 @@ abstract contract BaseTokenWrapperTest is Test {
 
     vm.startPrank(ALICE);
     IAToken(aTokenOut).approve(address(tokenWrapper), type(uint256).max);
-    tokenWrapper.withdrawToken(type(uint256).max, ALICE);
+    uint256 withdrawnAmount = tokenWrapper.withdrawToken(
+      type(uint256).max,
+      ALICE
+    );
     vm.stopPrank();
 
     assertEq(
@@ -260,6 +292,12 @@ abstract contract BaseTokenWrapperTest is Test {
       estimateFinalBalance - tokenIn.balanceOf(ALICE),
       1,
       'Unexpected ending tokenIn balance'
+    );
+
+    assertLe(
+      withdrawnAmount - tokenIn.balanceOf(ALICE),
+      1,
+      'Unexpected withdraw return/balance mismatch'
     );
   }
 
@@ -281,7 +319,7 @@ abstract contract BaseTokenWrapperTest is Test {
 
     vm.startPrank(ALICE);
     IAToken(aTokenOut).approve(address(tokenWrapper), aTokenBalance);
-    tokenWrapper.withdrawToken(aTokenBalance, BOB);
+    uint256 withdrawnAmount = tokenWrapper.withdrawToken(aTokenBalance, BOB);
     vm.stopPrank();
 
     assertEq(
@@ -294,6 +332,11 @@ abstract contract BaseTokenWrapperTest is Test {
       estimateFinalBalance - tokenIn.balanceOf(BOB),
       1,
       'Unexpected ending tokenIn balance'
+    );
+    assertLe(
+      withdrawnAmount - tokenIn.balanceOf(BOB),
+      1,
+      'Unexpected withdraw return/balance mismatch'
     );
   }
 
@@ -331,11 +374,15 @@ abstract contract BaseTokenWrapperTest is Test {
     );
 
     (uint8 v, bytes32 r, bytes32 s) = vm.sign(ALICE_KEY, digest);
-    BaseTokenWrapper.PermitSignature memory signature = BaseTokenWrapper
+    IBaseTokenWrapper.PermitSignature memory signature = IBaseTokenWrapper
       .PermitSignature(deadline, v, r, s);
 
     vm.startPrank(ALICE);
-    tokenWrapper.withdrawTokenWithPermit(aTokenBalance, ALICE, signature);
+    uint256 withdrawnAmount = tokenWrapper.withdrawTokenWithPermit(
+      aTokenBalance,
+      ALICE,
+      signature
+    );
     vm.stopPrank();
 
     assertEq(
@@ -347,6 +394,11 @@ abstract contract BaseTokenWrapperTest is Test {
       estimateFinalBalance - tokenIn.balanceOf(ALICE),
       1,
       'Unexpected ending tokenIn balance'
+    );
+    assertLe(
+      withdrawnAmount - tokenIn.balanceOf(ALICE),
+      1,
+      'Unexpected withdraw return/balance mismatch'
     );
   }
 
@@ -364,7 +416,7 @@ abstract contract BaseTokenWrapperTest is Test {
     assertEq(
       MOCK_TOKEN.balanceOf(address(tokenWrapper)),
       dealAmountScaled,
-      'Unexpected starting tokenWraper token balance'
+      'Unexpected starting tokenWrapper token balance'
     );
     assertEq(
       MOCK_TOKEN.balanceOf(OWNER),
@@ -373,12 +425,12 @@ abstract contract BaseTokenWrapperTest is Test {
     );
 
     vm.prank(OWNER);
-    tokenWrapper.rescueTokens(MOCK_TOKEN);
+    tokenWrapper.rescueTokens(MOCK_TOKEN, OWNER, dealAmountScaled);
 
     assertEq(
       MOCK_TOKEN.balanceOf(address(tokenWrapper)),
       0,
-      'Unexpected final tokenWraper token balance'
+      'Unexpected final tokenWrapper token balance'
     );
     assertEq(
       MOCK_TOKEN.balanceOf(OWNER),
@@ -387,11 +439,95 @@ abstract contract BaseTokenWrapperTest is Test {
     );
   }
 
-  function testRevertRescueTokensNotOwner() public {
+  function testRescueETH() public {
+    uint256 ethAmount = 100 ether;
+    assertEq(
+      address(tokenWrapper).balance,
+      0,
+      'Unexpected initial contract ETH balance'
+    );
+    vm.deal(address(tokenWrapper), ethAmount);
+    assertEq(
+      address(tokenWrapper).balance,
+      ethAmount,
+      'Unexpected post-deal ETH balance'
+    );
+    assertEq(OWNER.balance, 0, 'Unexpected owner ETH balance');
+
+    vm.prank(OWNER);
+    tokenWrapper.rescueETH(OWNER, ethAmount);
+
+    assertEq(
+      address(tokenWrapper).balance,
+      0,
+      'Unexpected post-rescue contract ETH balance'
+    );
+    assertEq(
+      OWNER.balance,
+      ethAmount,
+      'Unexpected post-rescue owner ETH balance'
+    );
+  }
+
+  function testRevertRescueNotOwner() public {
     MintableERC20 MOCK_TOKEN = new MintableERC20('Mock Token', 'MOCK', 18);
-    vm.prank(ALICE);
+    vm.startPrank(ALICE);
     vm.expectRevert('Ownable: caller is not the owner');
-    tokenWrapper.rescueTokens(MOCK_TOKEN);
+    tokenWrapper.rescueTokens(MOCK_TOKEN, OWNER, 0);
+    vm.expectRevert('Ownable: caller is not the owner');
+    tokenWrapper.rescueETH(OWNER, 0);
+    vm.stopPrank();
+  }
+
+  function testFuzzSupplyToken(uint256 amount, address referee) public {
+    amount = bound(amount, 1, MAX_DEAL_AMOUNT);
+    IERC20 tokenIn = IERC20(tokenWrapper.TOKEN_IN());
+
+    uint256 amountScaled = amount * 10 ** tokenInDecimals;
+    _dealTokenIn(ALICE, amountScaled);
+    uint256 estimateFinalBalance = tokenWrapper.getTokenOutForTokenIn(
+      amountScaled
+    );
+
+    vm.startPrank(ALICE);
+    tokenIn.approve(address(tokenWrapper), amountScaled);
+    tokenWrapper.supplyToken(amountScaled, referee, REFERRAL_CODE);
+    vm.stopPrank();
+
+    assertEq(tokenIn.balanceOf(ALICE), 0, 'Unexpected ending tokenIn balance');
+    assertLe(
+      estimateFinalBalance - IAToken(aTokenOut).balanceOf(referee),
+      1,
+      'Unexpected ending aToken balance'
+    );
+  }
+
+  function testFuzzWithdrawToken(uint256 aTokenBalance) public {
+    testSupplyToken();
+    IERC20 tokenIn = IERC20(tokenWrapper.TOKEN_IN());
+    uint256 aTokenBalanceOriginal = IAToken(aTokenOut).balanceOf(ALICE);
+    aTokenBalance = bound(aTokenBalance, 1000, aTokenBalanceOriginal - 1); //using 1000 as min to ignore dust amounts
+    assertGt(aTokenBalanceOriginal, 0, 'Unexpected starting aToken balance');
+    assertEq(
+      tokenIn.balanceOf(ALICE),
+      0,
+      'Unexpected starting tokenIn balance'
+    );
+    uint256 estimateFinalBalance = tokenWrapper.getTokenInForTokenOut(
+      aTokenBalance
+    );
+    vm.startPrank(ALICE);
+    IAToken(aTokenOut).approve(address(tokenWrapper), aTokenBalance);
+    uint256 withdrawnAmount = tokenWrapper.withdrawToken(aTokenBalance, ALICE);
+    vm.stopPrank();
+
+    assertGt(
+      IAToken(aTokenOut).balanceOf(ALICE),
+      0,
+      'Unexpected ending aToken balance'
+    );
+    assertGt(tokenIn.balanceOf(ALICE), 0, 'Unexpected ending tokenIn balance');
+    assertGt(withdrawnAmount, 0, 'Unexpected withdraw return/balance mismatch');
   }
 
   function _dealTokenIn(address user, uint256 amount) internal virtual {
