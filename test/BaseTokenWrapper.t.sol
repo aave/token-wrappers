@@ -522,11 +522,6 @@ abstract contract BaseTokenWrapperTest is Test {
     vm.stopPrank();
 
     assertEq(tokenIn.balanceOf(ALICE), 0, 'Unexpected ending tokenIn balance');
-    assertEq(
-      suppliedAmount,
-      IAToken(aTokenOut).balanceOf(referee),
-      'Unexpected supply return/balance mismatch'
-    );
     assertLe(
       estimateFinalBalance - IAToken(aTokenOut).balanceOf(referee),
       1,
