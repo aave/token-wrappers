@@ -11,11 +11,6 @@ import {GovernanceV3Ethereum} from 'aave-address-book/GovernanceV3Ethereum.sol';
  * @dev Deploy Ethereum
  */
 contract DeploySavingsDaiTokenWrapper is Script {
-  address public dai = AaveV3EthereumAssets.DAI_UNDERLYING;
-  address public sDai = AaveV3EthereumAssets.sDAI_UNDERLYING;
-  address public pool = address(AaveV3Ethereum.POOL);
-  address public owner = GovernanceV3Ethereum.EXECUTOR_LVL_1;
-
   function run() external {
     uint256 deployerPrivateKey = vm.envUint('PRIVATE_KEY');
 
@@ -23,10 +18,10 @@ contract DeploySavingsDaiTokenWrapper is Script {
 
     vm.startBroadcast(deployerPrivateKey);
     SavingsDaiTokenWrapper savingsDaiTokenWrapper = new SavingsDaiTokenWrapper(
-      dai,
-      sDai,
-      pool,
-      owner
+      AaveV3EthereumAssets.DAI_UNDERLYING,
+      AaveV3EthereumAssets.sDAI_UNDERLYING,
+      address(AaveV3Ethereum.POOL),
+      GovernanceV3Ethereum.EXECUTOR_LVL_1
     );
     vm.stopBroadcast();
 
