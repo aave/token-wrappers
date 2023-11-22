@@ -4,6 +4,9 @@ pragma solidity ^0.8.10;
 import {IERC20} from 'aave-v3-core/contracts/dependencies/openzeppelin/contracts/IERC20.sol';
 import {BaseTokenWrapperTest} from './BaseTokenWrapper.t.sol';
 import {SavingsDaiTokenWrapper} from '../src/SavingsDaiTokenWrapper.sol';
+import {DaiAbstract} from '../src/interfaces/DaiAbstract.sol';
+import {IAToken} from 'aave-v3-core/contracts/interfaces/IAToken.sol';
+import {IBaseTokenWrapper} from '../src/interfaces/IBaseTokenWrapper.sol';
 
 contract SavingsDaiTokenWrapperTest is BaseTokenWrapperTest {
   address constant DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
@@ -16,7 +19,6 @@ contract SavingsDaiTokenWrapperTest is BaseTokenWrapperTest {
     tokenWrapper = new SavingsDaiTokenWrapper(DAI, SDAI, pool, OWNER);
     aTokenOut = ASDAI;
     tokenInDecimals = 18;
-    permitSupported = false;
   }
 
   function testConstructor() public override {
@@ -39,6 +41,70 @@ contract SavingsDaiTokenWrapperTest is BaseTokenWrapperTest {
       IERC20(DAI).allowance(address(tempTokenWrapper), SDAI),
       type(uint256).max,
       'Unexpected TOKEN_IN allowance'
+    );
+  }
+
+  function testSupplyTokenWithPermit() public override {
+    IERC20 tokenIn = IERC20(tokenWrapper.TOKEN_IN());
+    assertEq(
+      tokenIn.balanceOf(ALICE),
+      0,
+      'Unexpected Alice starting tokenIn balance'
+    );
+    assertEq(
+      IAToken(aTokenOut).balanceOf(ALICE),
+      0,
+      'Unexpected Alice starting aToken balance'
+    );
+
+    uint256 dealAmountScaled = DEAL_AMOUNT * 10 ** tokenInDecimals;
+    _dealTokenIn(ALICE, dealAmountScaled);
+    uint256 estimateFinalBalance = tokenWrapper.getTokenOutForTokenIn(
+      dealAmountScaled
+    );
+
+    uint256 deadline = block.timestamp + 1;
+    uint256 nonce = DaiAbstract(address(tokenIn)).nonces(ALICE);
+    bytes32 digest = keccak256(
+      abi.encodePacked(
+        hex'1901',
+        DaiAbstract(address(tokenIn)).DOMAIN_SEPARATOR(),
+        keccak256(
+          abi.encode(
+            DaiAbstract(address(tokenIn)).PERMIT_TYPEHASH(),
+            ALICE,
+            address(tokenWrapper),
+            nonce,
+            deadline,
+            true
+          )
+        )
+      )
+    );
+
+    (uint8 v, bytes32 r, bytes32 s) = vm.sign(ALICE_KEY, digest);
+    IBaseTokenWrapper.PermitSignature memory signature = IBaseTokenWrapper
+      .PermitSignature(deadline, v, r, s);
+
+    vm.startPrank(ALICE);
+    uint256 suppliedAmount = tokenWrapper.supplyTokenWithPermit(
+      dealAmountScaled,
+      ALICE,
+      REFERRAL_CODE,
+      signature
+    );
+    vm.stopPrank();
+
+    assertEq(tokenIn.balanceOf(ALICE), 0, 'Unexpected ending tokenIn balance');
+    assertEq(
+      suppliedAmount,
+      IAToken(aTokenOut).balanceOf(ALICE),
+      'Unexpected supply return/balance mismatch'
+    );
+    assertLe(
+      estimateFinalBalance - IAToken(aTokenOut).balanceOf(ALICE),
+      1,
+      'Unexpected ending aToken balance'
     );
   }
 }

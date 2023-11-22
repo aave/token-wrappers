@@ -3,6 +3,7 @@ pragma solidity ^0.8.10;
 
 import {IERC20} from 'aave-v3-core/contracts/dependencies/openzeppelin/contracts/IERC20.sol';
 import {ISavingsDai} from './interfaces/ISavingsDai.sol';
+import {DaiAbstract} from './interfaces/DaiAbstract.sol';
 import {BaseTokenWrapper} from './BaseTokenWrapper.sol';
 
 /**
@@ -25,6 +26,27 @@ contract SavingsDaiTokenWrapper is BaseTokenWrapper {
     address owner
   ) BaseTokenWrapper(tokenIn, tokenOut, pool, owner) {
     IERC20(tokenIn).approve(tokenOut, type(uint256).max);
+  }
+
+  /// @inheritdoc BaseTokenWrapper
+  function supplyTokenWithPermit(
+    uint256 amount,
+    address onBehalfOf,
+    uint16 referralCode,
+    PermitSignature calldata signature
+  ) external override returns (uint256) {
+    uint256 nonce = DaiAbstract(TOKEN_IN).nonces(msg.sender);
+    DaiAbstract(TOKEN_IN).permit(
+      msg.sender,
+      address(this),
+      nonce,
+      signature.deadline,
+      true,
+      signature.v,
+      signature.r,
+      signature.s
+    );
+    return _supplyToken(amount, onBehalfOf, referralCode);
   }
 
   /// @inheritdoc BaseTokenWrapper

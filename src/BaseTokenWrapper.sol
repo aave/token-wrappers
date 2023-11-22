@@ -56,7 +56,7 @@ abstract contract BaseTokenWrapper is Ownable, IBaseTokenWrapper {
     address onBehalfOf,
     uint16 referralCode,
     PermitSignature calldata signature
-  ) external returns (uint256) {
+  ) external virtual returns (uint256) {
     IERC20WithPermit(TOKEN_IN).permit(
       msg.sender,
       address(this),

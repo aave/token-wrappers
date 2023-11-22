@@ -31,7 +31,6 @@ abstract contract BaseTokenWrapperTest is Test {
   BaseTokenWrapper tokenWrapper;
   address aTokenOut;
   uint256 tokenInDecimals;
-  bool permitSupported;
 
   constructor() {
     (ALICE, ALICE_KEY) = makeAddrAndKey('alice');
@@ -128,7 +127,7 @@ abstract contract BaseTokenWrapperTest is Test {
     );
   }
 
-  function testSupplyTokenWithPermit() public {
+  function testSupplyTokenWithPermit() public virtual {
     IERC20 tokenIn = IERC20(tokenWrapper.TOKEN_IN());
     assertEq(
       tokenIn.balanceOf(ALICE),
@@ -169,42 +168,26 @@ abstract contract BaseTokenWrapperTest is Test {
     IBaseTokenWrapper.PermitSignature memory signature = IBaseTokenWrapper
       .PermitSignature(deadline, v, r, s);
 
-    if (permitSupported) {
-      vm.startPrank(ALICE);
-      uint256 suppliedAmount = tokenWrapper.supplyTokenWithPermit(
-        dealAmountScaled,
-        ALICE,
-        REFERRAL_CODE,
-        signature
-      );
-      vm.stopPrank();
+    vm.startPrank(ALICE);
+    uint256 suppliedAmount = tokenWrapper.supplyTokenWithPermit(
+      dealAmountScaled,
+      ALICE,
+      REFERRAL_CODE,
+      signature
+    );
+    vm.stopPrank();
 
-      assertEq(
-        tokenIn.balanceOf(ALICE),
-        0,
-        'Unexpected ending tokenIn balance'
-      );
-      assertEq(
-        suppliedAmount,
-        IAToken(aTokenOut).balanceOf(ALICE),
-        'Unexpected supply return/balance mismatch'
-      );
-      assertLe(
-        estimateFinalBalance - IAToken(aTokenOut).balanceOf(ALICE),
-        1,
-        'Unexpected ending aToken balance'
-      );
-    } else {
-      vm.startPrank(ALICE);
-      vm.expectRevert();
-      tokenWrapper.supplyTokenWithPermit(
-        dealAmountScaled,
-        ALICE,
-        REFERRAL_CODE,
-        signature
-      );
-      vm.stopPrank();
-    }
+    assertEq(tokenIn.balanceOf(ALICE), 0, 'Unexpected ending tokenIn balance');
+    assertEq(
+      suppliedAmount,
+      IAToken(aTokenOut).balanceOf(ALICE),
+      'Unexpected supply return/balance mismatch'
+    );
+    assertLe(
+      estimateFinalBalance - IAToken(aTokenOut).balanceOf(ALICE),
+      1,
+      'Unexpected ending aToken balance'
+    );
   }
 
   function testRevertSupplyTokenZeroAmount() public {

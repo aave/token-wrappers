@@ -16,7 +16,6 @@ contract StakedEthTokenWrapperTest is BaseTokenWrapperTest {
     tokenWrapper = new StakedEthTokenWrapper(STETH, WSTETH, pool, OWNER);
     aTokenOut = AWSTETH;
     tokenInDecimals = 18;
-    permitSupported = true;
   }
 
   function testConstructor() public override {
