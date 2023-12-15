@@ -57,15 +57,21 @@ abstract contract BaseTokenWrapper is Ownable, IBaseTokenWrapper {
     uint16 referralCode,
     PermitSignature calldata signature
   ) external returns (uint256) {
-    IERC20WithPermit(TOKEN_IN).permit(
-      msg.sender,
-      address(this),
-      amount,
-      signature.deadline,
-      signature.v,
-      signature.r,
-      signature.s
-    );
+    try
+      IERC20WithPermit(TOKEN_IN).permit(
+        msg.sender,
+        address(this),
+        amount,
+        signature.deadline,
+        signature.v,
+        signature.r,
+        signature.s
+      )
+    {
+      //explicitly left blank to protect users from permit grifting
+    } catch {
+      //explicitly left blank to protect users from permit grifting
+    }
     return _supplyToken(amount, onBehalfOf, referralCode);
   }
 
@@ -85,15 +91,21 @@ abstract contract BaseTokenWrapper is Ownable, IBaseTokenWrapper {
     PermitSignature calldata signature
   ) external returns (uint256) {
     IAToken aTokenOut = IAToken(POOL.getReserveData(TOKEN_OUT).aTokenAddress);
-    aTokenOut.permit(
-      msg.sender,
-      address(this),
-      amount,
-      signature.deadline,
-      signature.v,
-      signature.r,
-      signature.s
-    );
+    try
+      aTokenOut.permit(
+        msg.sender,
+        address(this),
+        amount,
+        signature.deadline,
+        signature.v,
+        signature.r,
+        signature.s
+      )
+    {
+      //explicitly left blank to protect users from permit grifting
+    } catch {
+      //explicitly left blank to protect users from permit grifting
+    }
     return _withdrawToken(amount, to, aTokenOut);
   }
 
