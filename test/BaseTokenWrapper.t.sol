@@ -217,7 +217,7 @@ abstract contract BaseTokenWrapperTest is Test {
     }
   }
 
-  function testPermitGriftingSupplyTokenWithPermit() public {
+  function testPermitGriefingSupplyTokenWithPermit() public {
     IERC20 tokenIn = IERC20(tokenWrapper.TOKEN_IN());
     assertEq(
       tokenIn.balanceOf(ALICE),
@@ -525,7 +525,7 @@ abstract contract BaseTokenWrapperTest is Test {
     );
   }
 
-  function testPermitGriftingWithdrawTokenWithPermit() public {
+  function testPermitGriefingWithdrawTokenWithPermit() public {
     testSupplyToken();
     IERC20 tokenIn = IERC20(tokenWrapper.TOKEN_IN());
 
