@@ -13,6 +13,16 @@ interface IERC2612 {
   function nonces(address owner) external view returns (uint256);
 
   function DOMAIN_SEPARATOR() external view returns (bytes32);
+
+  function permit(
+    address owner,
+    address spender,
+    uint256 amount,
+    uint256 deadline,
+    uint8 v,
+    bytes32 r,
+    bytes32 s
+  ) external;
 }
 
 abstract contract BaseTokenWrapperTest is Test {
@@ -158,7 +168,7 @@ abstract contract BaseTokenWrapperTest is Test {
             ALICE,
             address(tokenWrapper),
             dealAmountScaled,
-            IAToken(aTokenOut).nonces(ALICE),
+            IERC2612(address(tokenIn)).nonces(ALICE),
             deadline
           )
         )
@@ -170,6 +180,96 @@ abstract contract BaseTokenWrapperTest is Test {
       .PermitSignature(deadline, v, r, s);
 
     if (permitSupported) {
+      vm.startPrank(ALICE);
+      uint256 suppliedAmount = tokenWrapper.supplyTokenWithPermit(
+        dealAmountScaled,
+        ALICE,
+        REFERRAL_CODE,
+        signature
+      );
+      vm.stopPrank();
+
+      assertEq(
+        tokenIn.balanceOf(ALICE),
+        0,
+        'Unexpected ending tokenIn balance'
+      );
+      assertEq(
+        suppliedAmount,
+        IAToken(aTokenOut).balanceOf(ALICE),
+        'Unexpected supply return/balance mismatch'
+      );
+      assertLe(
+        estimateFinalBalance - IAToken(aTokenOut).balanceOf(ALICE),
+        1,
+        'Unexpected ending aToken balance'
+      );
+    } else {
+      vm.startPrank(ALICE);
+      vm.expectRevert();
+      tokenWrapper.supplyTokenWithPermit(
+        dealAmountScaled,
+        ALICE,
+        REFERRAL_CODE,
+        signature
+      );
+      vm.stopPrank();
+    }
+  }
+
+  function testPermitGriefingSupplyTokenWithPermit() public {
+    IERC20 tokenIn = IERC20(tokenWrapper.TOKEN_IN());
+    assertEq(
+      tokenIn.balanceOf(ALICE),
+      0,
+      'Unexpected Alice starting tokenIn balance'
+    );
+    assertEq(
+      IAToken(aTokenOut).balanceOf(ALICE),
+      0,
+      'Unexpected Alice starting aToken balance'
+    );
+
+    uint256 dealAmountScaled = DEAL_AMOUNT * 10 ** tokenInDecimals;
+    _dealTokenIn(ALICE, dealAmountScaled);
+    uint256 estimateFinalBalance = tokenWrapper.getTokenOutForTokenIn(
+      dealAmountScaled
+    );
+
+    uint256 deadline = block.timestamp + 1;
+    bytes32 digest = keccak256(
+      abi.encodePacked(
+        hex'1901',
+        IERC2612(address(tokenIn)).DOMAIN_SEPARATOR(),
+        keccak256(
+          abi.encode(
+            PERMIT_TYPEHASH,
+            ALICE,
+            address(tokenWrapper),
+            dealAmountScaled,
+            IERC2612(address(tokenIn)).nonces(ALICE),
+            deadline
+          )
+        )
+      )
+    );
+
+    (uint8 v, bytes32 r, bytes32 s) = vm.sign(ALICE_KEY, digest);
+    IBaseTokenWrapper.PermitSignature memory signature = IBaseTokenWrapper
+      .PermitSignature(deadline, v, r, s);
+
+    if (permitSupported) {
+      vm.startPrank(BOB);
+      IERC2612(address(tokenIn)).permit(
+        ALICE,
+        address(tokenWrapper),
+        dealAmountScaled,
+        deadline,
+        v,
+        r,
+        s
+      );
+      vm.stopPrank();
       vm.startPrank(ALICE);
       uint256 suppliedAmount = tokenWrapper.supplyTokenWithPermit(
         dealAmountScaled,
@@ -399,6 +499,80 @@ abstract contract BaseTokenWrapperTest is Test {
     (uint8 v, bytes32 r, bytes32 s) = vm.sign(ALICE_KEY, digest);
     IBaseTokenWrapper.PermitSignature memory signature = IBaseTokenWrapper
       .PermitSignature(deadline, v, r, s);
+
+    vm.startPrank(ALICE);
+    uint256 withdrawnAmount = tokenWrapper.withdrawTokenWithPermit(
+      aTokenBalance,
+      ALICE,
+      signature
+    );
+    vm.stopPrank();
+
+    assertEq(
+      IAToken(aTokenOut).balanceOf(ALICE),
+      0,
+      'Unexpected ending aToken balance'
+    );
+    assertLe(
+      estimateFinalBalance - tokenIn.balanceOf(ALICE),
+      1,
+      'Unexpected ending tokenIn balance'
+    );
+    assertLe(
+      withdrawnAmount - tokenIn.balanceOf(ALICE),
+      1,
+      'Unexpected withdraw return/balance mismatch'
+    );
+  }
+
+  function testPermitGriefingWithdrawTokenWithPermit() public {
+    testSupplyToken();
+    IERC20 tokenIn = IERC20(tokenWrapper.TOKEN_IN());
+
+    uint256 aTokenBalance = IAToken(aTokenOut).balanceOf(ALICE);
+    assertGt(aTokenBalance, 0, 'Unexpected starting aToken balance');
+    assertEq(
+      tokenIn.balanceOf(ALICE),
+      0,
+      'Unexpected starting tokenIn balance'
+    );
+    uint256 estimateFinalBalance = tokenWrapper.getTokenInForTokenOut(
+      aTokenBalance
+    );
+
+    uint256 deadline = block.timestamp + 100;
+    bytes32 digest = keccak256(
+      abi.encodePacked(
+        hex'1901',
+        IAToken(aTokenOut).DOMAIN_SEPARATOR(),
+        keccak256(
+          abi.encode(
+            PERMIT_TYPEHASH,
+            ALICE,
+            address(tokenWrapper),
+            aTokenBalance,
+            IAToken(aTokenOut).nonces(ALICE),
+            deadline
+          )
+        )
+      )
+    );
+
+    (uint8 v, bytes32 r, bytes32 s) = vm.sign(ALICE_KEY, digest);
+    IBaseTokenWrapper.PermitSignature memory signature = IBaseTokenWrapper
+      .PermitSignature(deadline, v, r, s);
+
+    vm.startPrank(BOB);
+    IERC2612(aTokenOut).permit(
+      ALICE,
+      address(tokenWrapper),
+      aTokenBalance,
+      deadline,
+      v,
+      r,
+      s
+    );
+    vm.stopPrank();
 
     vm.startPrank(ALICE);
     uint256 withdrawnAmount = tokenWrapper.withdrawTokenWithPermit(
