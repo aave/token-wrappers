@@ -639,6 +639,7 @@ abstract contract BaseTokenWrapperTest is Test {
 
   function testRescueETH() public {
     uint256 ethAmount = 100 ether;
+    vm.deal(address(tokenWrapper), 0);
     assertEq(
       address(tokenWrapper).balance,
       0,
