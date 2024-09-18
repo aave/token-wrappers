@@ -6,33 +6,21 @@ import {IERC20} from 'aave-v3-core/contracts/dependencies/openzeppelin/contracts
 import {BaseTokenWrapperTest} from './BaseTokenWrapper.t.sol';
 import {SavingsSuSDSTokenWrapper} from '../src/SavingsSuSDSTokenWrapper.sol';
 
-interface IPayload {
-  function execute() external;
-
-  function sUSDS() external view returns (address);
-}
-
 // frontend deposits usds and automatically converted to susds on aave
-
 contract SavingsSuSDSTokenWrapperTest is BaseTokenWrapperTest {
   address constant USDS = 0xdC035D45d973E3EC169d2276DDab16f1e407384F;
   address constant SUSDS = 0xa3931d71877C0E7a3148CB7Eb4463524FEc27fbD;
 
-  // fork
+  // TODO Actual Address --> fork
   address constant AUSDS = 0x5c647cE0Ae10658ec44FA4E11A51c96e94efd1Dd;
-
-  // fork
-  // address constant ASUSDS = 0x5c647ce0ae10658ec44fa4e11a51c96e94efd1dd;
 
   function setUp() public {
     // vm.createSelectFork(vm.envString('ETH_RPC_URL'));
     vm.createSelectFork(
       'https://rpc.tenderly.co/fork/26fdbc41-5ae7-4f5a-9b47-a4ae15e05ce0'
     );
-    // short gov executor
     pool = 0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
 
-    // in, out, pool, owner
     tokenWrapper = new SavingsSuSDSTokenWrapper(USDS, SUSDS, pool, OWNER);
     aTokenOut = AUSDS;
     tokenInDecimals = 18;

@@ -8,13 +8,13 @@ import {BaseTokenWrapper} from './BaseTokenWrapper.sol';
 /**
  * @title SavingsSuSDSTokenWrapper
  * @author Aave
- * @notice Contract to wrap Dai to SuSDS on supply to Aave, or unwrap from SuSDS to Dai on withdrawal
+ * @notice Contract to wrap USDS to SuSDS on supply to Aave, or unwrap from SuSDS to USDS on withdrawal
  */
 contract SavingsSuSDSTokenWrapper is BaseTokenWrapper {
   /**
    * @dev Constructor
-   * @param tokenIn Address for Dai
-   * @param tokenOut Address for SuSDS
+   * @param tokenIn Address for USDS
+   * @param tokenOut Address for SUSDS
    * @param pool The address of the Aave Pool
    * @param owner The address to transfer ownership to
    */
