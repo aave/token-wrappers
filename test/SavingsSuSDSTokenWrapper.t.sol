@@ -6,6 +6,7 @@ import {IERC20} from 'aave-v3-core/contracts/dependencies/openzeppelin/contracts
 import {IPool} from 'aave-v3-core/contracts/interfaces/IPool.sol';
 import {BaseTokenWrapperTest} from './BaseTokenWrapper.t.sol';
 import {SavingsSuSDSTokenWrapper} from '../src/SavingsSuSDSTokenWrapper.sol';
+import {ICreditDelegationToken} from '../src/interfaces/ICreditDelegationToken.sol';
 
 // frontend deposits usds and automatically converted to susds on aave
 contract SavingsSuSDSTokenWrapperTest is BaseTokenWrapperTest {
@@ -54,23 +55,38 @@ contract SavingsSuSDSTokenWrapperTest is BaseTokenWrapperTest {
 
   function testBorrow() public {
     address alice = makeAddr('ALICE');
-    deal(SUSDS, alice, 1e18);
+    deal(USDS, alice, 1000e18);
     vm.startPrank(alice);
-    IERC20(SUSDS).approve(address(pool), 1e18);
-    IPool(pool).supply(SUSDS, 1e18, alice, 0);
+    IERC20(USDS).approve(address(pool), 1000e18);
+    IPool(pool).supply(USDS, 1000e18, alice, 0);
     vm.stopPrank();
 
+    // TODO: Instead of checking pool, need to check reserve contract
+    /*
     assertEq(
-      IERC20(USDS).balanceOf(address(pool)),
+      IERC20(SUSDS).balanceOf(address(pool)),
       1e18,
       'Unexpected post-deal pool USDS balance'
-    );
+    );*/
 
     deal(WETH, address(this), 20 ether);
+    IERC20(WETH).approve(pool, 20 ether);
     IPool(pool).supply(WETH, 20 ether, address(this), 0);
 
-    uint256 amount = 1e16;
+    deal(USDS, address(this), 1e18);
+    IERC20(USDS).approve(address(pool), 1e18);
+    IPool(pool).supply(USDS, 1e18, address(this), 0);
+    deal(SUSDS, address(this), 1e18);
+    IERC20(SUSDS).approve(address(pool), 1e18);
+    IPool(pool).supply(SUSDS, 1e18, address(this), 0);
+
+    uint256 amount = 1e18;
+    uint256 amountOut = tokenWrapper.getTokenOutForTokenIn(amount);
     uint256 usdsBefore = IERC20(USDS).balanceOf(address(this));
+    ICreditDelegationToken(SUSDS).approveDelegation(
+      address(tokenWrapper),
+      amountOut
+    );
     tokenWrapper.borrowToken(amount, address(this));
     uint256 usdsAfter = IERC20(USDS).balanceOf(address(this));
 

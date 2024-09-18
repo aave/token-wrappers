@@ -29,9 +29,9 @@ contract SavingsSuSDSTokenWrapper is BaseTokenWrapper {
 
   ///@inheritdoc BaseTokenWrapper
   function borrowToken(uint256 amount, address to) external override {
-    POOL.borrow(TOKEN_OUT, amount, 1, 0, to);
-    _unwrapTokenOut(amount);
-    IERC20(TOKEN_IN).transfer(to, amount);
+    POOL.borrow(TOKEN_OUT, amount, 1, 0, address(this));
+    uint256 amountIn = _unwrapTokenOut(amount);
+    IERC20(TOKEN_IN).transfer(to, amountIn);
   }
 
   /// @inheritdoc BaseTokenWrapper
