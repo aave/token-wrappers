@@ -15,29 +15,28 @@ interface IPayload {
 // frontend deposits usds and automatically converted to susds on aave
 
 contract SavingsSuSDSTokenWrapperTest is BaseTokenWrapperTest {
-  address constant USDS = 0x1923DfeE706A8E78157416C29cBCCFDe7cdF4102;
-  address constant SUSDS = 0x4e7991e5C547ce825BdEb665EE14a3274f9F61e0;
+  address constant USDS = 0xdC035D45d973E3EC169d2276DDab16f1e407384F;
+  address constant SUSDS = 0xa3931d71877C0E7a3148CB7Eb4463524FEc27fbD;
 
-  address constant AUSDS = 0x4C612E3B15b96Ff9A6faED838F8d07d479a8dD4c;
+  // fork
+  address constant AUSDS = 0x5c647cE0Ae10658ec44FA4E11A51c96e94efd1Dd;
+
+  // fork
+  // address constant ASUSDS = 0x5c647ce0ae10658ec44fa4e11a51c96e94efd1dd;
 
   function setUp() public {
-    vm.createSelectFork(vm.envString('ETH_RPC_URL'));
-    // short gov executor
-
-    // //https://etherscan.io/address/0x2749Ef5641B90DCD17Ee2C0cbFbbA5b440e14fec#code
-    IPayload deployedPayload = IPayload(
-      0x2749Ef5641B90DCD17Ee2C0cbFbbA5b440e14fec
+    // vm.createSelectFork(vm.envString('ETH_RPC_URL'));
+    vm.createSelectFork(
+      'https://rpc.tenderly.co/fork/26fdbc41-5ae7-4f5a-9b47-a4ae15e05ce0'
     );
-    vm.prank(0xEE56e2B3D491590B5b31738cC34d5232F378a8D5);
-
-    deployedPayload.execute();
+    // short gov executor
     pool = 0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
 
     // in, out, pool, owner
     tokenWrapper = new SavingsSuSDSTokenWrapper(USDS, SUSDS, pool, OWNER);
     aTokenOut = AUSDS;
     tokenInDecimals = 18;
-    permitSupported = false;
+    permitSupported = true;
   }
 
   function testConstructor() public override {

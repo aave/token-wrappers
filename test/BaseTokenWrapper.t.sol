@@ -80,6 +80,7 @@ abstract contract BaseTokenWrapperTest is Test {
     vm.stopPrank();
 
     assertEq(tokenIn.balanceOf(ALICE), 0, 'Unexpected ending tokenIn balance');
+
     assertEq(
       suppliedAmount,
       IAToken(aTokenOut).balanceOf(ALICE),
