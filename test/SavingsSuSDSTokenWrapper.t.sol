@@ -115,16 +115,17 @@ contract SavingsSuSDSTokenWrapperTest is BaseTokenWrapperTest {
     IPool(pool).supply(WETH, collateralAmount, alice, 0);
 
     ICreditDelegationToken(debtToken).approveDelegation(
-      address(this),
+      address(tokenWrapper),
       borrowAmount
     );
-    vm.stopPrank();
 
     // IPool(pool).borrow(SUSDS, borrowAmount, 2, 0, alice);
-
     // console2.log('Borrowing USDS', address(tokenWrapper));
-    tokenWrapper.borrowToken(borrowAmount, address(this));
+    tokenWrapper.borrowToken(borrowAmount, address(alice));
 
-    assertEq(IERC20(SUSDS).balanceOf(address(this)), borrowAmount);
+    vm.stopPrank();
+
+    uint256 borrowedAmount = tokenWrapper.getTokenInForTokenOut(borrowAmount);
+    assertEq(IERC20(USDS).balanceOf(address(alice)), borrowedAmount);
   }
 }

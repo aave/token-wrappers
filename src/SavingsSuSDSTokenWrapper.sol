@@ -32,8 +32,7 @@ contract SavingsSuSDSTokenWrapper is BaseTokenWrapper {
   function borrowToken(uint256 amount, address to) external override {
     require(amount > 0, 'INSUFFICIENT_AMOUNT_TO_BORROW');
 
-    console2.log('TOKEN_OUT', TOKEN_OUT);
-    POOL.borrow(TOKEN_OUT, amount, 2, 0, address(this));
+    POOL.borrow(TOKEN_OUT, amount, 2, 0, address(to));
 
     uint256 amountIn = _unwrapTokenOut(amount);
     IERC20(TOKEN_IN).transfer(to, amountIn);
