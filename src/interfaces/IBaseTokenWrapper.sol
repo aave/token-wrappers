@@ -62,6 +62,13 @@ interface IBaseTokenWrapper {
   ) external returns (uint256);
 
   /**
+   * @notice Borrows token from the Pool and unwraps it, sending to the recipient
+   * @param amount The amount of token to borrow
+   * @param to The address that will receive the unwrapped token
+   */
+  function borrowToken(uint256 amount, address to) external;
+
+  /**
    * @notice Provides way for the contract owner to rescue ERC-20 tokens
    * @param token The address of the token to withdraw from this contract
    * @param to The address of the recipient of rescued funds
