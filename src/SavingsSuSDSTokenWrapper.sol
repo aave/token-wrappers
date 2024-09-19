@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity ^0.8.10;
+import 'forge-std/console2.sol';
 
 import {IERC20} from 'aave-v3-core/contracts/dependencies/openzeppelin/contracts/IERC20.sol';
 import {IUSDS} from './interfaces/IUSDS.sol';
@@ -29,7 +30,11 @@ contract SavingsSuSDSTokenWrapper is BaseTokenWrapper {
 
   ///@inheritdoc BaseTokenWrapper
   function borrowToken(uint256 amount, address to) external override {
-    POOL.borrow(TOKEN_OUT, amount, 1, 0, address(this));
+    require(amount > 0, 'INSUFFICIENT_AMOUNT_TO_BORROW');
+
+    console2.log('TOKEN_OUT', TOKEN_OUT);
+    POOL.borrow(TOKEN_OUT, amount, 2, 0, address(this));
+
     uint256 amountIn = _unwrapTokenOut(amount);
     IERC20(TOKEN_IN).transfer(to, amountIn);
   }
