@@ -16,12 +16,12 @@ contract SavingsSuSDSTokenWrapperTest is BaseTokenWrapperTest {
   address constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
 
   // TODO Actual Address --> fork
-  address constant AUSDS = 0x5c647cE0Ae10658ec44FA4E11A51c96e94efd1Dd;
+  address constant AUSDS = 0x10Ac93971cdb1F5c778144084242374473c350Da;
 
   function setUp() public {
     // vm.createSelectFork(vm.envString('ETH_RPC_URL'));
     vm.createSelectFork(
-      'https://rpc.tenderly.co/fork/26fdbc41-5ae7-4f5a-9b47-a4ae15e05ce0'
+      'https://rpc.tenderly.co/fork/881012fd-267f-41dc-93ba-8eb025b8bce2'
     );
     pool = 0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
 
@@ -100,7 +100,7 @@ contract SavingsSuSDSTokenWrapperTest is BaseTokenWrapperTest {
 
   function testBorrow() public {
     address debtToken = IPool(pool)
-      .getReserveData(USDS)
+      .getReserveData(SUSDS)
       .variableDebtTokenAddress;
 
     address alice = makeAddr('ALICE');
@@ -120,10 +120,11 @@ contract SavingsSuSDSTokenWrapperTest is BaseTokenWrapperTest {
     );
     vm.stopPrank();
 
-    IPool(pool).borrow(USDS, borrowAmount, 2, 0, alice);
-    // console2.log('Borrowing USDS', address(tokenWrapper));
-    // tokenWrapper.borrowToken(borrowAmount, address(this));
+    // IPool(pool).borrow(SUSDS, borrowAmount, 2, 0, alice);
 
-    assertEq(IERC20(USDS).balanceOf(address(this)), borrowAmount);
+    // console2.log('Borrowing USDS', address(tokenWrapper));
+    tokenWrapper.borrowToken(borrowAmount, address(this));
+
+    assertEq(IERC20(SUSDS).balanceOf(address(this)), borrowAmount);
   }
 }
