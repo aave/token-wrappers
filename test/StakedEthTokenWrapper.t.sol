@@ -11,7 +11,7 @@ contract StakedEthTokenWrapperTest is BaseTokenWrapperTest {
   address constant AWSTETH = 0x0B925eD163218f6662a35e0f0371Ac234f9E9371;
 
   function setUp() public {
-    vm.createSelectFork(vm.envString('ETH_RPC_URL'));
+    vm.createSelectFork(vm.envString('ETH_RPC_URL'), 20784588);
     pool = 0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
     tokenWrapper = new StakedEthTokenWrapper(STETH, WSTETH, pool, OWNER);
     aTokenOut = AWSTETH;
