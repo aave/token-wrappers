@@ -54,63 +54,17 @@ contract SavingsSuSDSTokenWrapperTest is BaseTokenWrapperTest {
     );
   }
 
-  // function testBorrow() public {
-  //   address alice = makeAddr('ALICE');
-  //   deal(USDS, alice, 1000e18);
-  //   vm.startPrank(alice);
-  //   IERC20(USDS).approve(address(pool), 1000e18);
-  //   IPool(pool).supply(USDS, 1000e18, alice, 0);
-  //   vm.stopPrank();
-
-  //   // TODO: Instead of checking pool, need to check reserve contract
-  //   /*
-  //   assertEq(
-  //     IERC20(SUSDS).balanceOf(address(pool)),
-  //     1e18,
-  //     'Unexpected post-deal pool USDS balance'
-  //   );*/
-
-  //   deal(WETH, address(this), 20 ether);
-  //   IERC20(WETH).approve(pool, 20 ether);
-  //   IPool(pool).supply(WETH, 20 ether, address(this), 0);
-
-  //   deal(USDS, address(this), 1e18);
-  //   IERC20(USDS).approve(address(pool), 1e18);
-  //   IPool(pool).supply(USDS, 1e18, address(this), 0);
-  //   deal(SUSDS, address(this), 1e18);
-  //   IERC20(SUSDS).approve(address(pool), 1e18);
-  //   IPool(pool).supply(SUSDS, 1e18, address(this), 0);
-
-  //   uint256 amount = 1e18;
-  //   uint256 amountOut = tokenWrapper.getTokenOutForTokenIn(amount);
-  //   uint256 usdsBefore = IERC20(USDS).balanceOf(address(this));
-  //   ICreditDelegationToken(SUSDS).approveDelegation(
-  //     address(tokenWrapper),
-  //     amountOut
-  //   );
-  //   tokenWrapper.borrowToken(amount, address(this));
-  //   uint256 usdsAfter = IERC20(USDS).balanceOf(address(this));
-
-  //   assertEq(
-  //     usdsAfter,
-  //     usdsBefore + amount,
-  //     'Unexpected USDS balance after borrow'
-  //   );
-  // }
-
   function testBorrow() public {
+    uint256 collateralAmount = 1000e18;
+    uint256 borrowAmount = 100e18;
     address debtToken = IPool(pool)
-      .getReserveData(SUSDS)
+      .getReserveData(tokenWrapper.TOKEN_OUT())
       .variableDebtTokenAddress;
 
     address alice = makeAddr('ALICE');
-    uint256 collateralAmount = 1000e18;
-
-    uint256 borrowAmount = 100e18;
-
     deal(WETH, alice, collateralAmount);
-
     vm.startPrank(alice);
+
     IERC20(WETH).approve(address(pool), collateralAmount);
     IPool(pool).supply(WETH, collateralAmount, alice, 0);
 
@@ -119,13 +73,13 @@ contract SavingsSuSDSTokenWrapperTest is BaseTokenWrapperTest {
       borrowAmount
     );
 
-    // IPool(pool).borrow(SUSDS, borrowAmount, 2, 0, alice);
-    // console2.log('Borrowing USDS', address(tokenWrapper));
     tokenWrapper.borrowToken(borrowAmount, address(alice));
-
     vm.stopPrank();
 
     uint256 borrowedAmount = tokenWrapper.getTokenInForTokenOut(borrowAmount);
-    assertEq(IERC20(USDS).balanceOf(address(alice)), borrowedAmount);
+    assertEq(
+      IERC20(tokenWrapper.TOKEN_IN()).balanceOf(address(alice)),
+      borrowedAmount
+    );
   }
 }

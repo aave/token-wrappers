@@ -104,7 +104,12 @@ abstract contract BaseTokenWrapper is Ownable, IBaseTokenWrapper {
   }
 
   /// @inheritdoc IBaseTokenWrapper
-  function borrowToken(uint256 amount, address to) external virtual {}
+  function borrowToken(uint256 amount, address to) external virtual {
+    require(amount > 0, 'INSUFFICIENT_AMOUNT_TO_BORROW');
+    POOL.borrow(TOKEN_OUT, amount, 2, 0, address(to));
+    uint256 amountIn = _unwrapTokenOut(amount);
+    IERC20(TOKEN_IN).transfer(to, amountIn);
+  }
 
   /// @inheritdoc IBaseTokenWrapper
   function rescueTokens(
