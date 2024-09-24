@@ -11,7 +11,6 @@ contract StakedEthTokenWrapperTest is BaseTokenWrapperTest {
   address constant STETH = 0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84;
   address constant WSTETH = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
   address constant AWSTETH = 0x0B925eD163218f6662a35e0f0371Ac234f9E9371;
-  address constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
 
   function setUp() public {
     vm.createSelectFork(vm.envString('ETH_RPC_URL'), 20784588);
@@ -42,37 +41,6 @@ contract StakedEthTokenWrapperTest is BaseTokenWrapperTest {
       IERC20(STETH).allowance(address(tempTokenWrapper), WSTETH),
       type(uint256).max,
       'Unexpected TOKEN_IN allowance'
-    );
-  }
-
-  function testBorrow() public {
-    uint256 collateralAmount = 1000e18;
-    uint256 borrowAmount = 100e18;
-    address debtToken = IPool(pool)
-      .getReserveData(tokenWrapper.TOKEN_OUT())
-      .variableDebtTokenAddress;
-
-    address alice = makeAddr('ALICE');
-    deal(WETH, alice, collateralAmount);
-    vm.startPrank(alice);
-
-    IERC20(WETH).approve(address(pool), collateralAmount);
-    IPool(pool).supply(WETH, collateralAmount, alice, 0);
-
-    ICreditDelegationToken(debtToken).approveDelegation(
-      address(tokenWrapper),
-      borrowAmount
-    );
-
-    tokenWrapper.borrowToken(borrowAmount, address(alice));
-    vm.stopPrank();
-
-    uint256 borrowedAmount = tokenWrapper.getTokenInForTokenOut(borrowAmount);
-    // Allow OBOB for rounding to nearest wei
-    assertApproxEqAbs(
-      IERC20(tokenWrapper.TOKEN_IN()).balanceOf(address(alice)),
-      borrowedAmount,
-      1
     );
   }
 

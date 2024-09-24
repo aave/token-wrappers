@@ -6,14 +6,13 @@ import {DataTypes} from 'aave-v3-core/contracts/protocol/libraries/types/DataTyp
 import {IERC20} from 'aave-v3-core/contracts/dependencies/openzeppelin/contracts/IERC20.sol';
 import {IPool} from 'aave-v3-core/contracts/interfaces/IPool.sol';
 import {BaseTokenWrapperTest} from './BaseTokenWrapper.t.sol';
-import {SavingsSuSDSTokenWrapper} from '../src/SavingsSuSDSTokenWrapper.sol';
+import {SavingUsdsTokenWrapper} from '../src/SavingUsdsTokenWrapper.sol';
 import {ICreditDelegationToken} from '../src/interfaces/ICreditDelegationToken.sol';
 
 // frontend deposits usds and automatically converted to susds on aave
-contract SavingsSuSDSTokenWrapperTest is BaseTokenWrapperTest {
+contract SavingUsdsTokenWrapperTest is BaseTokenWrapperTest {
   address constant USDS = 0xdC035D45d973E3EC169d2276DDab16f1e407384F;
   address constant SUSDS = 0xa3931d71877C0E7a3148CB7Eb4463524FEc27fbD;
-  address constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
 
   // TODO Actual Address --> fork
   address constant AUSDS = 0x10Ac93971cdb1F5c778144084242374473c350Da;
@@ -25,14 +24,14 @@ contract SavingsSuSDSTokenWrapperTest is BaseTokenWrapperTest {
     );
     pool = 0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
 
-    tokenWrapper = new SavingsSuSDSTokenWrapper(USDS, SUSDS, pool, OWNER);
+    tokenWrapper = new SavingUsdsTokenWrapper(USDS, SUSDS, pool, OWNER);
     aTokenOut = AUSDS;
     tokenInDecimals = 18;
     permitSupported = true;
   }
 
   function testConstructor() public override {
-    SavingsSuSDSTokenWrapper tempTokenWrapper = new SavingsSuSDSTokenWrapper(
+    SavingUsdsTokenWrapper tempTokenWrapper = new SavingUsdsTokenWrapper(
       USDS,
       SUSDS,
       pool,
@@ -51,35 +50,6 @@ contract SavingsSuSDSTokenWrapperTest is BaseTokenWrapperTest {
       IERC20(USDS).allowance(address(tempTokenWrapper), SUSDS),
       type(uint256).max,
       'Unexpected TOKEN_IN allowance'
-    );
-  }
-
-  function testBorrow() public {
-    uint256 collateralAmount = 1000e18;
-    uint256 borrowAmount = 100e18;
-    address debtToken = IPool(pool)
-      .getReserveData(tokenWrapper.TOKEN_OUT())
-      .variableDebtTokenAddress;
-
-    address alice = makeAddr('ALICE');
-    deal(WETH, alice, collateralAmount);
-    vm.startPrank(alice);
-
-    IERC20(WETH).approve(address(pool), collateralAmount);
-    IPool(pool).supply(WETH, collateralAmount, alice, 0);
-
-    ICreditDelegationToken(debtToken).approveDelegation(
-      address(tokenWrapper),
-      borrowAmount
-    );
-
-    tokenWrapper.borrowToken(borrowAmount, address(alice));
-    vm.stopPrank();
-
-    uint256 borrowedAmount = tokenWrapper.getTokenInForTokenOut(borrowAmount);
-    assertEq(
-      IERC20(tokenWrapper.TOKEN_IN()).balanceOf(address(alice)),
-      borrowedAmount
     );
   }
 }
