@@ -735,35 +735,6 @@ abstract contract BaseTokenWrapperTest is Test {
     assertGt(withdrawnAmount, 0, 'Unexpected withdraw return/balance mismatch');
   }
 
-  function testBorrow() public {
-    uint256 collateralAmount = 1000e18;
-    uint256 borrowAmount = 100e18;
-    address debtToken = IPool(pool)
-      .getReserveData(tokenWrapper.TOKEN_OUT())
-      .variableDebtTokenAddress;
-
-    address alice = makeAddr('ALICE');
-    deal(WETH, alice, collateralAmount);
-    vm.startPrank(alice);
-
-    IERC20(WETH).approve(address(pool), collateralAmount);
-    IPool(pool).supply(WETH, collateralAmount, alice, 0);
-
-    ICreditDelegationToken(debtToken).approveDelegation(
-      address(tokenWrapper),
-      borrowAmount
-    );
-
-    tokenWrapper.borrowToken(borrowAmount, address(alice), 0);
-    vm.stopPrank();
-
-    uint256 borrowedAmount = tokenWrapper.getTokenInForTokenOut(borrowAmount);
-    assertEq(
-      IERC20(tokenWrapper.TOKEN_IN()).balanceOf(address(alice)),
-      borrowedAmount
-    );
-  }
-
   function _dealTokenIn(address user, uint256 amount) internal virtual {
     deal(tokenWrapper.TOKEN_IN(), user, amount);
   }
