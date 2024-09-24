@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity ^0.8.10;
-
 import {Ownable} from 'aave-v3-core/contracts/dependencies/openzeppelin/contracts/Ownable.sol';
 import {IERC20} from 'aave-v3-core/contracts/dependencies/openzeppelin/contracts/IERC20.sol';
 import {IERC20WithPermit} from 'aave-v3-core/contracts/interfaces/IERC20WithPermit.sol';
@@ -104,10 +103,18 @@ abstract contract BaseTokenWrapper is Ownable, IBaseTokenWrapper {
   }
 
   /// @inheritdoc IBaseTokenWrapper
-  function borrowToken(uint256 amount, address to) external virtual {
+  function borrowToken(
+    uint256 amount,
+    address to,
+    uint16 referralCode
+  ) external virtual {
     require(amount > 0, 'INSUFFICIENT_AMOUNT_TO_BORROW');
-    POOL.borrow(TOKEN_OUT, amount, 2, 0, address(to));
-    uint256 amountIn = _unwrapTokenOut(amount);
+    uint256 balanceBeforeBorrow = IERC20(TOKEN_OUT).balanceOf(address(this));
+    POOL.borrow(TOKEN_OUT, amount, 2, referralCode, address(to));
+    uint256 balanceAfterBorrow = IERC20(TOKEN_OUT).balanceOf(address(this));
+    uint256 amountIn = _unwrapTokenOut(
+      balanceAfterBorrow - balanceBeforeBorrow
+    );
     IERC20(TOKEN_IN).transfer(to, amountIn);
   }
 

@@ -3,15 +3,15 @@ pragma solidity ^0.8.10;
 import 'forge-std/console2.sol';
 
 import {IERC20} from 'aave-v3-core/contracts/dependencies/openzeppelin/contracts/IERC20.sol';
-import {IUSDS} from './interfaces/IUSDS.sol';
+import {IUSDS} from './dependencies/IUSDS.sol';
 import {BaseTokenWrapper} from './BaseTokenWrapper.sol';
 
 /**
- * @title SavingsSuSDSTokenWrapper
+ * @title SavingUsdsTokenWrapper
  * @author Aave
  * @notice Contract to wrap USDS to SuSDS on supply to Aave, or unwrap from SuSDS to USDS on withdrawal
  */
-contract SavingsSuSDSTokenWrapper is BaseTokenWrapper {
+contract SavingUsdsTokenWrapper is BaseTokenWrapper {
   /**
    * @dev Constructor
    * @param tokenIn Address for USDS
