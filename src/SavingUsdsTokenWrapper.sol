@@ -36,16 +36,10 @@ contract SavingUsdsTokenWrapper is BaseTokenWrapper {
     address to,
     uint16 referralCode
   ) external override {
-    require(amount > 0, 'INSUFFICIENT_AMOUNT_TO_BORROW');
-    uint256 balanceBeforeBorrow = IERC20(TOKEN_OUT).balanceOf(address(this));
-    POOL.borrow(TOKEN_OUT, amount, 2, referralCode, address(to));
-    uint256 balanceAfterBorrow = IERC20(TOKEN_OUT).balanceOf(address(this));
-    uint256 amountIn = _unwrapTokenOut(
-      balanceAfterBorrow - balanceBeforeBorrow
-    );
-    IERC20(TOKEN_IN).transfer(to, amountIn);
+    _borrowToken(amount, to, referralCode);
   }
 
+  /// @inheritdoc BaseTokenWrapper
   function borrowTokenWithPermit(
     uint256 amount,
     address to,
@@ -55,8 +49,6 @@ contract SavingUsdsTokenWrapper is BaseTokenWrapper {
     bytes32 permitR,
     bytes32 permitS
   ) external override {
-    require(amount > 0, 'INSUFFICIENT_AMOUNT_TO_BORROW');
-
     if (deadline != 0) {
       address debtToken = IPool(0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2)
         .getReserveData(TOKEN_OUT)
@@ -72,15 +64,7 @@ contract SavingUsdsTokenWrapper is BaseTokenWrapper {
         permitS
       );
     }
-    uint256 balanceBeforeBorrow = IERC20(TOKEN_OUT).balanceOf(address(this));
-
-    POOL.borrow(TOKEN_OUT, amount, 2, referralCode, address(to));
-    uint256 balanceAfterBorrow = IERC20(TOKEN_OUT).balanceOf(address(this));
-
-    uint256 amountIn = _unwrapTokenOut(
-      balanceAfterBorrow - balanceBeforeBorrow
-    );
-    IERC20(TOKEN_IN).transfer(to, amountIn);
+    _borrowToken(amount, to, referralCode);
   }
 
   /// @inheritdoc BaseTokenWrapper
@@ -105,5 +89,20 @@ contract SavingUsdsTokenWrapper is BaseTokenWrapper {
   /// @inheritdoc BaseTokenWrapper
   function _unwrapTokenOut(uint256 amount) internal override returns (uint256) {
     return IUSDS(TOKEN_OUT).redeem(amount, address(this), address(this));
+  }
+
+  function _borrowToken(
+    uint256 amount,
+    address to,
+    uint16 referralCode
+  ) internal {
+    require(amount > 0, 'INSUFFICIENT_AMOUNT_TO_BORROW');
+    uint256 balanceBeforeBorrow = IERC20(TOKEN_OUT).balanceOf(address(this));
+    POOL.borrow(TOKEN_OUT, amount, 2, referralCode, address(to));
+    uint256 balanceAfterBorrow = IERC20(TOKEN_OUT).balanceOf(address(this));
+    uint256 amountIn = _unwrapTokenOut(
+      balanceAfterBorrow - balanceBeforeBorrow
+    );
+    IERC20(TOKEN_IN).transfer(to, amountIn);
   }
 }
