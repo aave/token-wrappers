@@ -26,6 +26,14 @@ abstract contract BaseTokenWrapper is Ownable, IBaseTokenWrapper {
   IPool public immutable POOL;
 
   /**
+   * @dev Throws if called by any token wrapper borrow function not permitted.
+   */
+  modifier actionNotPermitted() {
+    require(false, 'INVALID_ACTION');
+    _;
+  }
+
+  /**
    * @dev Constructor
    * @param tokenIn ERC-20 token that will be wrapped in supply operations
    * @param tokenOut ERC-20 token received upon wrapping

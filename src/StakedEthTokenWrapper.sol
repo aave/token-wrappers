@@ -50,4 +50,11 @@ contract StakedEthTokenWrapper is BaseTokenWrapper {
   function _unwrapTokenOut(uint256 amount) internal override returns (uint256) {
     return IWstETH(TOKEN_OUT).unwrap(amount);
   }
+
+  /// @inheritdoc BaseTokenWrapper
+  function borrowToken(
+    uint256 amount,
+    address to,
+    uint16 referralCode
+  ) external override actionNotPermitted {}
 }

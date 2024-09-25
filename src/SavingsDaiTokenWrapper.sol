@@ -50,4 +50,11 @@ contract SavingsDaiTokenWrapper is BaseTokenWrapper {
   function _unwrapTokenOut(uint256 amount) internal override returns (uint256) {
     return ISavingsDai(TOKEN_OUT).redeem(amount, address(this), address(this));
   }
+
+  /// @inheritdoc BaseTokenWrapper
+  function borrowToken(
+    uint256 amount,
+    address to,
+    uint16 referralCode
+  ) external override actionNotPermitted {}
 }

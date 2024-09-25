@@ -47,4 +47,27 @@ contract SavingsDaiTokenWrapperTest is BaseTokenWrapperTest {
       'Unexpected TOKEN_IN allowance'
     );
   }
+
+  function testBorrowNotPermitted() public {
+    uint256 collateralAmount = 1000e18;
+    uint256 borrowAmount = 100e18;
+    address debtToken = IPool(pool)
+      .getReserveData(tokenWrapper.TOKEN_OUT())
+      .variableDebtTokenAddress;
+
+    address alice = makeAddr('ALICE');
+    deal(WETH, alice, collateralAmount);
+    vm.startPrank(alice);
+
+    IERC20(WETH).approve(address(pool), collateralAmount);
+    IPool(pool).supply(WETH, collateralAmount, alice, 0);
+
+    ICreditDelegationToken(debtToken).approveDelegation(
+      address(tokenWrapper),
+      borrowAmount
+    );
+    vm.expectRevert('INVALID_ACTION');
+    tokenWrapper.borrowToken(borrowAmount, address(alice), 0);
+    vm.stopPrank();
+  }
 }
