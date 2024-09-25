@@ -29,6 +29,22 @@ contract SavingUsdsTokenWrapper is BaseTokenWrapper {
   }
 
   /// @inheritdoc BaseTokenWrapper
+  function borrowToken(
+    uint256 amount,
+    address to,
+    uint16 referralCode
+  ) external override {
+    require(amount > 0, 'INSUFFICIENT_AMOUNT_TO_BORROW');
+    uint256 balanceBeforeBorrow = IERC20(TOKEN_OUT).balanceOf(address(this));
+    POOL.borrow(TOKEN_OUT, amount, 2, referralCode, address(to));
+    uint256 balanceAfterBorrow = IERC20(TOKEN_OUT).balanceOf(address(this));
+    uint256 amountIn = _unwrapTokenOut(
+      balanceAfterBorrow - balanceBeforeBorrow
+    );
+    IERC20(TOKEN_IN).transfer(to, amountIn);
+  }
+
+  /// @inheritdoc BaseTokenWrapper
   function getTokenOutForTokenIn(
     uint256 amount
   ) external view override returns (uint256) {
@@ -50,21 +66,5 @@ contract SavingUsdsTokenWrapper is BaseTokenWrapper {
   /// @inheritdoc BaseTokenWrapper
   function _unwrapTokenOut(uint256 amount) internal override returns (uint256) {
     return IUSDS(TOKEN_OUT).redeem(amount, address(this), address(this));
-  }
-
-  /// @inheritdoc BaseTokenWrapper
-  function borrowToken(
-    uint256 amount,
-    address to,
-    uint16 referralCode
-  ) external override {
-    require(amount > 0, 'INSUFFICIENT_AMOUNT_TO_BORROW');
-    uint256 balanceBeforeBorrow = IERC20(TOKEN_OUT).balanceOf(address(this));
-    POOL.borrow(TOKEN_OUT, amount, 2, referralCode, address(to));
-    uint256 balanceAfterBorrow = IERC20(TOKEN_OUT).balanceOf(address(this));
-    uint256 amountIn = _unwrapTokenOut(
-      balanceAfterBorrow - balanceBeforeBorrow
-    );
-    IERC20(TOKEN_IN).transfer(to, amountIn);
   }
 }

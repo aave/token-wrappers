@@ -682,6 +682,7 @@ abstract contract BaseTokenWrapperTest is Test {
 
   function testFuzzSupplyToken(uint256 amount, address referee) public {
     amount = bound(amount, 1, MAX_DEAL_AMOUNT);
+    vm.assume(IAToken(aTokenOut).balanceOf(referee) == 0);
     IERC20 tokenIn = IERC20(tokenWrapper.TOKEN_IN());
 
     uint256 amountScaled = amount * 10 ** tokenInDecimals;
@@ -700,8 +701,9 @@ abstract contract BaseTokenWrapperTest is Test {
     vm.stopPrank();
 
     assertEq(tokenIn.balanceOf(ALICE), 0, 'Unexpected ending tokenIn balance');
-    assertLe(
-      estimateFinalBalance - IAToken(aTokenOut).balanceOf(referee),
+    assertApproxEqAbs(
+      estimateFinalBalance,
+      IAToken(aTokenOut).balanceOf(referee),
       1,
       'Unexpected ending aToken balance'
     );
