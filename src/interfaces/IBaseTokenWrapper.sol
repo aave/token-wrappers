@@ -74,6 +74,26 @@ interface IBaseTokenWrapper {
   ) external;
 
   /**
+   * @notice Borrows token from the Pool, unwraps it, and sends it to the recipient using EIP-2612 permit
+   * @param amount The amount of token to borrow
+   * @param to The address that will receive the unwrapped token
+   * @param referralCode Code used to register the integrator originating the operation, for potential rewards
+   * @param deadline The deadline timestamp for the permit signature to be valid
+   * @param permitV The V parameter of the permit signature
+   * @param permitR The R parameter of the permit signature
+   * @param permitS The S parameter of the permit signature
+   */
+  function borrowTokenWithPermit(
+    uint256 amount,
+    address to,
+    uint16 referralCode,
+    uint256 deadline,
+    uint8 permitV,
+    bytes32 permitR,
+    bytes32 permitS
+  ) external;
+
+  /**
    * @notice Provides way for the contract owner to rescue ERC-20 tokens
    * @param token The address of the token to withdraw from this contract
    * @param to The address of the recipient of rescued funds

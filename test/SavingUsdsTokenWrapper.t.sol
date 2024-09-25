@@ -8,6 +8,9 @@ import {IPool} from 'aave-v3-core/contracts/interfaces/IPool.sol';
 import {BaseTokenWrapperTest} from './BaseTokenWrapper.t.sol';
 import {SavingUsdsTokenWrapper} from '../src/SavingUsdsTokenWrapper.sol';
 import {ICreditDelegationToken} from '../src/interfaces/ICreditDelegationToken.sol';
+import {IERC20WithPermit} from 'aave-v3-core/contracts/interfaces/IERC20WithPermit.sol';
+import {SigUtils} from './utils/SigUtils.sol';
+import {IAToken} from 'aave-v3-core/contracts/interfaces/IAToken.sol';
 
 // frontend deposits usds and automatically converted to susds on aave
 contract SavingUsdsTokenWrapperTest is BaseTokenWrapperTest {
@@ -62,6 +65,7 @@ contract SavingUsdsTokenWrapperTest is BaseTokenWrapperTest {
 
     address alice = makeAddr('ALICE');
     deal(WETH, alice, collateralAmount);
+
     vm.startPrank(alice);
 
     IERC20(WETH).approve(address(pool), collateralAmount);
@@ -80,5 +84,121 @@ contract SavingUsdsTokenWrapperTest is BaseTokenWrapperTest {
       IERC20(tokenWrapper.TOKEN_IN()).balanceOf(address(alice)),
       borrowedAmount
     );
+  }
+
+  function testBorrowTokenWithPermit() public {
+    uint256 borrowAmount = 100e18;
+    uint256 collateralAmount = 1000e18;
+
+    uint256 userPrivateKey = 0xA11CE;
+    address alice = address(vm.addr(userPrivateKey));
+    deal(WETH, alice, collateralAmount);
+
+    address debtToken = IPool(pool)
+      .getReserveData(tokenWrapper.TOKEN_OUT())
+      .variableDebtTokenAddress;
+
+    vm.startPrank(alice);
+
+    IERC20(WETH).approve(address(pool), collateralAmount);
+
+    IPool(pool).supply(WETH, collateralAmount, alice, 0);
+
+    uint256 deadline = block.timestamp + 1 hours;
+    uint256 nonce = IAToken(debtToken).nonces(alice);
+
+    (uint8 v, bytes32 r, bytes32 s) = _signCreditDelegation(
+      userPrivateKey,
+      address(tokenWrapper),
+      borrowAmount,
+      nonce,
+      deadline,
+      debtToken
+    );
+
+    tokenWrapper.borrowTokenWithPermit(
+      borrowAmount,
+      alice,
+      1,
+      deadline,
+      v,
+      r,
+      s
+    );
+
+    vm.stopPrank();
+
+    uint256 borrowedAmount = tokenWrapper.getTokenInForTokenOut(borrowAmount);
+    assertEq(
+      IERC20(tokenWrapper.TOKEN_IN()).balanceOf(address(alice)),
+      borrowedAmount
+    );
+  }
+
+  function testBorrowTokenWithPermitZeroAmount() public {
+    uint256 borrowAmount = 0;
+    uint256 collateralAmount = 1000e18;
+
+    uint256 userPrivateKey = 0xA11CE;
+    address alice = address(vm.addr(userPrivateKey));
+    deal(WETH, alice, collateralAmount);
+
+    address debtToken = IPool(pool)
+      .getReserveData(tokenWrapper.TOKEN_OUT())
+      .variableDebtTokenAddress;
+
+    vm.startPrank(alice);
+
+    IERC20(WETH).approve(address(pool), collateralAmount);
+
+    IPool(pool).supply(WETH, collateralAmount, alice, 0);
+
+    uint256 deadline = block.timestamp + 1 hours;
+    uint256 nonce = IAToken(debtToken).nonces(alice);
+
+    (uint8 v, bytes32 r, bytes32 s) = _signCreditDelegation(
+      userPrivateKey,
+      address(tokenWrapper),
+      borrowAmount,
+      nonce,
+      deadline,
+      debtToken
+    );
+
+    vm.expectRevert('INSUFFICIENT_AMOUNT_TO_BORROW');
+    tokenWrapper.borrowTokenWithPermit(
+      borrowAmount,
+      alice,
+      1,
+      deadline,
+      v,
+      r,
+      s
+    );
+  }
+
+  function _signCreditDelegation(
+    uint256 privateKey,
+    address delegatee,
+    uint256 value,
+    uint256 nonce,
+    uint256 deadline,
+    address debtToken
+  ) internal view returns (uint8 v, bytes32 r, bytes32 s) {
+    SigUtils.CreditDelegation memory creditDelegation = SigUtils
+      .CreditDelegation({
+        delegatee: delegatee,
+        value: value,
+        nonce: nonce,
+        deadline: deadline
+      });
+
+    bytes32 domainSeparator = IAToken(debtToken).DOMAIN_SEPARATOR();
+    bytes32 digest = SigUtils.getCreditDelegationTypedDataHash(
+      creditDelegation,
+      domainSeparator
+    );
+
+    return vm.sign(privateKey, digest);
   }
 }

@@ -118,6 +118,17 @@ abstract contract BaseTokenWrapper is Ownable, IBaseTokenWrapper {
   ) external virtual {}
 
   /// @inheritdoc IBaseTokenWrapper
+  function borrowTokenWithPermit(
+    uint256 amount,
+    address to,
+    uint16 referralCode,
+    uint256 deadline,
+    uint8 permitV,
+    bytes32 permitR,
+    bytes32 permitS
+  ) external virtual {}
+
+  /// @inheritdoc IBaseTokenWrapper
   function rescueTokens(
     IERC20 token,
     address to,
