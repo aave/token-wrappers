@@ -4,18 +4,20 @@ import 'forge-std/console2.sol';
 
 import {DataTypes} from 'aave-v3-core/contracts/protocol/libraries/types/DataTypes.sol';
 import {IERC20} from 'aave-v3-core/contracts/dependencies/openzeppelin/contracts/IERC20.sol';
+import {IERC20WithPermit} from 'aave-v3-core/contracts/interfaces/IERC20WithPermit.sol';
 import {IPool} from 'aave-v3-core/contracts/interfaces/IPool.sol';
-import {BaseTokenWrapperTest} from './BaseTokenWrapper.t.sol';
+import {IAToken} from 'aave-v3-core/contracts/interfaces/IAToken.sol';
 import {SavingUsdsTokenWrapper} from '../src/SavingUsdsTokenWrapper.sol';
 import {ICreditDelegationToken} from '../src/interfaces/ICreditDelegationToken.sol';
-import {IERC20WithPermit} from 'aave-v3-core/contracts/interfaces/IERC20WithPermit.sol';
+import {IBaseTokenWrapper} from '../src/interfaces/IBaseTokenWrapper.sol';
+import {BaseTokenWrapperTest} from './BaseTokenWrapper.t.sol';
 import {SigUtils} from './utils/SigUtils.sol';
-import {IAToken} from 'aave-v3-core/contracts/interfaces/IAToken.sol';
 
 // frontend deposits usds and automatically converted to susds on aave
 contract SavingUsdsTokenWrapperTest is BaseTokenWrapperTest {
   address constant USDS = 0xdC035D45d973E3EC169d2276DDab16f1e407384F;
   address constant SUSDS = 0xa3931d71877C0E7a3148CB7Eb4463524FEc27fbD;
+  address constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
 
   // TODO Actual Address --> fork
   address constant AUSDS = 0x10Ac93971cdb1F5c778144084242374473c350Da;
@@ -76,7 +78,7 @@ contract SavingUsdsTokenWrapperTest is BaseTokenWrapperTest {
       borrowAmount
     );
 
-    tokenWrapper.borrowToken(borrowAmount, address(alice), 0);
+    tokenWrapper.borrowToken(borrowAmount, 0);
     vm.stopPrank();
 
     uint256 borrowedAmount = tokenWrapper.getTokenInForTokenOut(borrowAmount);
@@ -115,16 +117,10 @@ contract SavingUsdsTokenWrapperTest is BaseTokenWrapperTest {
       deadline,
       debtToken
     );
+    IBaseTokenWrapper.PermitSignature memory signature = IBaseTokenWrapper
+      .PermitSignature({deadline: deadline, v: v, r: r, s: s});
 
-    tokenWrapper.borrowTokenWithPermit(
-      borrowAmount,
-      alice,
-      1,
-      deadline,
-      v,
-      r,
-      s
-    );
+    tokenWrapper.borrowTokenWithPermit(borrowAmount, 1, signature);
 
     vm.stopPrank();
 
@@ -164,17 +160,11 @@ contract SavingUsdsTokenWrapperTest is BaseTokenWrapperTest {
       deadline,
       debtToken
     );
+    IBaseTokenWrapper.PermitSignature memory signature = IBaseTokenWrapper
+      .PermitSignature({deadline: deadline, v: v, r: r, s: s});
 
     vm.expectRevert('INSUFFICIENT_AMOUNT_TO_BORROW');
-    tokenWrapper.borrowTokenWithPermit(
-      borrowAmount,
-      alice,
-      1,
-      deadline,
-      v,
-      r,
-      s
-    );
+    tokenWrapper.borrowTokenWithPermit(borrowAmount, 1, signature);
   }
 
   function _signCreditDelegation(

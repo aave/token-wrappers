@@ -11,6 +11,7 @@ contract StakedEthTokenWrapperTest is BaseTokenWrapperTest {
   address constant STETH = 0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84;
   address constant WSTETH = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
   address constant AWSTETH = 0x0B925eD163218f6662a35e0f0371Ac234f9E9371;
+  address constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
 
   function setUp() public {
     vm.createSelectFork(vm.envString('ETH_RPC_URL'), 20784588);
@@ -70,7 +71,7 @@ contract StakedEthTokenWrapperTest is BaseTokenWrapperTest {
       borrowAmount
     );
     vm.expectRevert('INVALID_ACTION');
-    tokenWrapper.borrowToken(borrowAmount, address(alice), 0);
+    tokenWrapper.borrowToken(borrowAmount, 0);
     vm.stopPrank();
   }
 }

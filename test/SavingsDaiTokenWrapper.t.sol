@@ -12,6 +12,7 @@ contract SavingsDaiTokenWrapperTest is BaseTokenWrapperTest {
   address constant DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
   address constant SDAI = 0x83F20F44975D03b1b09e64809B757c47f942BEeA;
   address constant ASDAI = 0x4C612E3B15b96Ff9A6faED838F8d07d479a8dD4c;
+  address constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
   address constant POOL_CONFIGURATOR =
     0x64b761D848206f447Fe2dd461b0c635Ec39EbB27;
   address constant ADMIN = 0x5300A1a15135EA4dc7aD5a167152C01EFc9b192A;
@@ -67,7 +68,7 @@ contract SavingsDaiTokenWrapperTest is BaseTokenWrapperTest {
       borrowAmount
     );
     vm.expectRevert('INVALID_ACTION');
-    tokenWrapper.borrowToken(borrowAmount, address(alice), 0);
+    tokenWrapper.borrowToken(borrowAmount, 0);
     vm.stopPrank();
   }
 }

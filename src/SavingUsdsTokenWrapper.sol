@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity ^0.8.10;
-import 'forge-std/console2.sol';
 
 import {IPool} from 'aave-v3-core/contracts/interfaces/IPool.sol';
 import {ICreditDelegationToken} from 'aave-v3-core/contracts/interfaces/ICreditDelegationToken.sol';
@@ -31,25 +30,17 @@ contract SavingUsdsTokenWrapper is BaseTokenWrapper {
   }
 
   /// @inheritdoc BaseTokenWrapper
-  function borrowToken(
-    uint256 amount,
-    address to,
-    uint16 referralCode
-  ) external override {
-    _borrowToken(amount, to, referralCode);
+  function borrowToken(uint256 amount, uint16 referralCode) external override {
+    _borrowToken(amount, msg.sender, referralCode);
   }
 
   /// @inheritdoc BaseTokenWrapper
   function borrowTokenWithPermit(
     uint256 amount,
-    address to,
     uint16 referralCode,
-    uint256 deadline,
-    uint8 permitV,
-    bytes32 permitR,
-    bytes32 permitS
+    PermitSignature calldata signature
   ) external override {
-    if (deadline != 0) {
+    if (signature.deadline != 0) {
       address debtToken = IPool(0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2)
         .getReserveData(TOKEN_OUT)
         .variableDebtTokenAddress;
@@ -58,13 +49,13 @@ contract SavingUsdsTokenWrapper is BaseTokenWrapper {
         msg.sender,
         address(this),
         amount,
-        deadline,
-        permitV,
-        permitR,
-        permitS
+        signature.deadline,
+        signature.v,
+        signature.r,
+        signature.s
       );
     }
-    _borrowToken(amount, to, referralCode);
+    _borrowToken(amount, msg.sender, referralCode);
   }
 
   /// @inheritdoc BaseTokenWrapper
@@ -89,20 +80,5 @@ contract SavingUsdsTokenWrapper is BaseTokenWrapper {
   /// @inheritdoc BaseTokenWrapper
   function _unwrapTokenOut(uint256 amount) internal override returns (uint256) {
     return IUSDS(TOKEN_OUT).redeem(amount, address(this), address(this));
-  }
-
-  function _borrowToken(
-    uint256 amount,
-    address to,
-    uint16 referralCode
-  ) internal {
-    require(amount > 0, 'INSUFFICIENT_AMOUNT_TO_BORROW');
-    uint256 balanceBeforeBorrow = IERC20(TOKEN_OUT).balanceOf(address(this));
-    POOL.borrow(TOKEN_OUT, amount, 2, referralCode, address(to));
-    uint256 balanceAfterBorrow = IERC20(TOKEN_OUT).balanceOf(address(this));
-    uint256 amountIn = _unwrapTokenOut(
-      balanceAfterBorrow - balanceBeforeBorrow
-    );
-    IERC20(TOKEN_IN).transfer(to, amountIn);
   }
 }

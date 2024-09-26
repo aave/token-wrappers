@@ -52,20 +52,16 @@ contract StakedEthTokenWrapper is BaseTokenWrapper {
   }
 
   /// @inheritdoc BaseTokenWrapper
-  function borrowToken(
-    uint256 amount,
-    address to,
-    uint16 referralCode
-  ) external override actionNotPermitted {}
+  function borrowToken(uint256 amount, uint16 referralCode) external override {
+    revert('INVALID_ACTION');
+  }
 
   /// @inheritdoc BaseTokenWrapper
   function borrowTokenWithPermit(
     uint256 amount,
-    address to,
     uint16 referralCode,
-    uint256 deadline,
-    uint8 permitV,
-    bytes32 permitR,
-    bytes32 permitS
-  ) external override actionNotPermitted {}
+    PermitSignature calldata signature
+  ) external override {
+    revert('INVALID_ACTION');
+  }
 }

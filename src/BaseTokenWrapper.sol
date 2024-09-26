@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity ^0.8.10;
+
 import {Ownable} from 'aave-v3-core/contracts/dependencies/openzeppelin/contracts/Ownable.sol';
 import {IERC20} from 'aave-v3-core/contracts/dependencies/openzeppelin/contracts/IERC20.sol';
 import {IERC20WithPermit} from 'aave-v3-core/contracts/interfaces/IERC20WithPermit.sol';
@@ -24,14 +25,6 @@ abstract contract BaseTokenWrapper is Ownable, IBaseTokenWrapper {
 
   /// @inheritdoc IBaseTokenWrapper
   IPool public immutable POOL;
-
-  /**
-   * @dev Throws if called by any token wrapper borrow function not permitted.
-   */
-  modifier actionNotPermitted() {
-    require(false, 'INVALID_ACTION');
-    _;
-  }
 
   /**
    * @dev Constructor
@@ -111,21 +104,13 @@ abstract contract BaseTokenWrapper is Ownable, IBaseTokenWrapper {
   }
 
   /// @inheritdoc IBaseTokenWrapper
-  function borrowToken(
-    uint256 amount,
-    address to,
-    uint16 referralCode
-  ) external virtual {}
+  function borrowToken(uint256 amount, uint16 referralCode) external virtual {}
 
   /// @inheritdoc IBaseTokenWrapper
   function borrowTokenWithPermit(
     uint256 amount,
-    address to,
     uint16 referralCode,
-    uint256 deadline,
-    uint8 permitV,
-    bytes32 permitR,
-    bytes32 permitS
+    PermitSignature calldata signature
   ) external virtual {}
 
   /// @inheritdoc IBaseTokenWrapper
@@ -200,6 +185,27 @@ abstract contract BaseTokenWrapper is Ownable, IBaseTokenWrapper {
     require(amountUnwrapped > 0, 'INSUFFICIENT_UNWRAPPED_TOKEN_RECEIVED');
     IERC20(TOKEN_IN).safeTransfer(to, amountUnwrapped);
     return amountUnwrapped;
+  }
+
+  /**
+   * @notice Helper to borrow token from the Pool and unwraps it, sending to the recipient
+   * @param amount The amount of token to borrow
+   * @param onBehalfOf The address that will receive the unwrapped token
+   * @param referralCode Code used to register the integrator originating the operation, for potential rewards
+   */
+  function _borrowToken(
+    uint256 amount,
+    address onBehalfOf,
+    uint16 referralCode
+  ) internal {
+    require(amount > 0, 'INSUFFICIENT_AMOUNT_TO_BORROW');
+    uint256 balanceBeforeBorrow = IERC20(TOKEN_OUT).balanceOf(address(this));
+    POOL.borrow(TOKEN_OUT, amount, 2, referralCode, address(onBehalfOf));
+    uint256 balanceAfterBorrow = IERC20(TOKEN_OUT).balanceOf(address(this));
+    uint256 amountIn = _unwrapTokenOut(
+      balanceAfterBorrow - balanceBeforeBorrow
+    );
+    IERC20(TOKEN_IN).transfer(onBehalfOf, amountIn);
   }
 
   /**

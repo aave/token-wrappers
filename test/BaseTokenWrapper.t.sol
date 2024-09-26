@@ -6,8 +6,8 @@ import {IERC20} from 'aave-v3-core/contracts/dependencies/openzeppelin/contracts
 import {IPool} from 'aave-v3-core/contracts/interfaces/IPool.sol';
 import {IAToken} from 'aave-v3-core/contracts/interfaces/IAToken.sol';
 import {MintableERC20} from 'aave-v3-core/contracts/mocks/tokens/MintableERC20.sol';
-import {BaseTokenWrapper} from '../src/BaseTokenWrapper.sol';
 import {IBaseTokenWrapper} from '../src/interfaces/IBaseTokenWrapper.sol';
+import {BaseTokenWrapper} from '../src/BaseTokenWrapper.sol';
 import {ICreditDelegationToken} from '../src/interfaces/ICreditDelegationToken.sol';
 
 interface IERC2612 {
@@ -43,7 +43,6 @@ abstract contract BaseTokenWrapperTest is Test {
   address aTokenOut;
   uint256 tokenInDecimals;
   bool permitSupported;
-  address constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
 
   constructor() {
     (ALICE, ALICE_KEY) = makeAddrAndKey('alice');
