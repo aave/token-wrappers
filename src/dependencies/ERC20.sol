@@ -3,7 +3,7 @@
 
 pragma solidity ^0.8.20;
 
-import {IERC20} from 'aave-v3-core/contracts/dependencies/openzeppelin/contracts/IERC20.sol';
+import {IERC20} from './IERC20.sol';
 import {IERC20Metadata} from './IERC20Metadata.sol';
 import {Context} from './Context.sol';
 import {IERC20Errors} from './draft-IERC6093.sol';
@@ -26,7 +26,7 @@ import {IERC20Errors} from './draft-IERC6093.sol';
  * conventional and does not conflict with the expectations of ERC-20
  * applications.
  */
-abstract contract ERC20 is Context, IERC20, IERC20Metadata, IERC20Errors {
+contract ERC20 is Context, IERC20, IERC20Metadata, IERC20Errors {
   mapping(address account => uint256) private _balances;
 
   mapping(address account => mapping(address spender => uint256))

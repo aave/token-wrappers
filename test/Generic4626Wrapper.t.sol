@@ -3,32 +3,38 @@ pragma solidity ^0.8.10;
 import 'forge-std/console2.sol';
 
 import {DataTypes} from 'aave-v3-core/contracts/protocol/libraries/types/DataTypes.sol';
-import {IERC20} from 'aave-v3-core/contracts/dependencies/openzeppelin/contracts/IERC20.sol';
-import {ERC20} from 'aave-v3-core/contracts/dependencies/openzeppelin/contracts/ERC20.sol';
+import {IERC20} from '../src/dependencies/IERC20.sol';
+import {ERC20} from '../src/dependencies/ERC20.sol';
 import {IERC20WithPermit} from 'aave-v3-core/contracts/interfaces/IERC20WithPermit.sol';
 import {IPool} from 'aave-v3-core/contracts/interfaces/IPool.sol';
 import {IPoolConfigurator} from 'aave-v3-core/contracts/interfaces/IPoolConfigurator.sol';
+import {ConfiguratorInputTypes} from 'aave-v3-core/contracts/protocol/libraries/types/ConfiguratorInputTypes.sol';
 import {IAToken} from 'aave-v3-core/contracts/interfaces/IAToken.sol';
 import {Generic4626Wrapper} from '../src/Generic4626Wrapper.sol';
 import {ICreditDelegationToken} from '../src/interfaces/ICreditDelegationToken.sol';
 import {IBaseTokenWrapper} from '../src/interfaces/IBaseTokenWrapper.sol';
 import {ERC4626} from '../src/dependencies/ERC4626.sol';
 import {MockERC4626} from './mocks/MockERC4626.sol';
+import {MockERC20} from './mocks/MockERC20.sol';
 import {SigUtils} from './utils/SigUtils.sol';
 import {BaseTokenWrapperTest} from './BaseTokenWrapper.t.sol';
 
 contract Generic4626WrapperTest is BaseTokenWrapperTest {
-  IERC20 USDSToken = new ERC20('USDS', 'USDS');
-  ERC4626 SUSDSToken = new MockERC4626(USDSToken);
   address constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-  address USDS = address(USDSToken);
-  address SUSDS = address(SUSDSToken);
+  ERC20 USDSToken;
+  ERC4626 SUSDSToken;
+  address USDS;
+  address SUSDS;
   address constant POOL_CONFIGURATOR =
     0x64b761D848206f447Fe2dd461b0c635Ec39EbB27;
   address constant ADMIN = 0x5300A1a15135EA4dc7aD5a167152C01EFc9b192A;
 
   function setUp() public {
     vm.createSelectFork(vm.envString('ETH_RPC_URL'), 20784588);
+    USDSToken = new ERC20('USDS', 'USDS');
+    SUSDSToken = new MockERC4626(USDSToken);
+    USDS = address(USDSToken);
+    SUSDS = address(SUSDSToken);
 
     /*
     vm.createSelectFork(
@@ -41,7 +47,28 @@ contract Generic4626WrapperTest is BaseTokenWrapperTest {
     tokenInDecimals = 18;
     permitSupported = true;
 
+    ConfiguratorInputTypes.InitReserveInput[]
+      memory reserveInputs = new ConfiguratorInputTypes.InitReserveInput[](1);
+    reserveInputs[0] = ConfiguratorInputTypes.InitReserveInput({
+      aTokenImpl: 0x7EfFD7b47Bfd17e52fB7559d3f924201b9DbfF3d,
+      stableDebtTokenImpl: 0x15C5620dfFaC7c7366EED66C20Ad222DDbB1eD57,
+      variableDebtTokenImpl: 0xaC725CB59D16C81061BDeA61041a8A5e73DA9EC6,
+      underlyingAssetDecimals: ERC20(tokenWrapper.TOKEN_OUT()).decimals(),
+      interestRateStrategyAddress: 0x847A3364Cc5fE389283bD821cfC8A477288D9e82,
+      underlyingAsset: tokenWrapper.TOKEN_OUT(),
+      treasury: 0x464C71f6c2F760DdA6093dCB91C24c39e5d6e18c,
+      incentivesController: 0x8164Cc65827dcFe994AB23944CBC90e0aa80bFcb,
+      aTokenName: 'AaveSUSDS',
+      aTokenSymbol: 'ASUSDS',
+      variableDebtTokenName: 'VariableDebtSUSDS',
+      variableDebtTokenSymbol: 'VSUSDS',
+      stableDebtTokenName: 'StableDebtSUSDS',
+      stableDebtTokenSymbol: 'SSUSDS',
+      params: bytes('')
+    });
+
     vm.startPrank(ADMIN);
+    IPoolConfigurator(POOL_CONFIGURATOR).initReserves(reserveInputs);
     IPoolConfigurator(POOL_CONFIGURATOR).setReserveActive(
       tokenWrapper.TOKEN_OUT(),
       true
@@ -50,7 +77,26 @@ contract Generic4626WrapperTest is BaseTokenWrapperTest {
       tokenWrapper.TOKEN_OUT(),
       type(uint256).max
     );
+    IPoolConfigurator(POOL_CONFIGURATOR).setBorrowCap(
+      tokenWrapper.TOKEN_OUT(),
+      type(uint256).max
+    );
+    IPoolConfigurator(POOL_CONFIGURATOR).setReserveBorrowing(
+      tokenWrapper.TOKEN_OUT(),
+      true
+    );
+    IPoolConfigurator(POOL_CONFIGURATOR).configureReserveAsCollateral(
+      SUSDS,
+      1e18,
+      1e18,
+      1e18
+    );
     vm.stopPrank();
+
+    // Try seeing if borrowing is enabled on the new asset
+    DataTypes.ReserveData memory reserveData = IPool(pool).getReserveData(
+      tokenWrapper.TOKEN_OUT()
+    );
 
     uint256 collateralAmount = 1000e18;
     deal(SUSDS, address(this), collateralAmount);

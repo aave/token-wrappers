@@ -3,8 +3,8 @@
 
 pragma solidity ^0.8.20;
 
-import {IERC20} from 'aave-v3-core/contracts/dependencies/openzeppelin/contracts/IERC20.sol';
-import {SafeERC20} from 'aave-v3-core/contracts/dependencies/openzeppelin/contracts/SafeERC20.sol';
+import {IERC20} from './IERC20.sol';
+import {SafeERC20} from './SafeERC20.sol';
 import {ERC20} from './ERC20.sol';
 import {IERC20Metadata} from './IERC20Metadata.sol';
 import {IERC4626} from './IERC4626.sol';
