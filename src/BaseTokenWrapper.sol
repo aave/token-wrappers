@@ -7,6 +7,7 @@ import {IERC20WithPermit} from 'aave-v3-core/contracts/interfaces/IERC20WithPerm
 import {GPv2SafeERC20} from 'aave-v3-core/contracts/dependencies/gnosis/contracts/GPv2SafeERC20.sol';
 import {IPool} from 'aave-v3-core/contracts/interfaces/IPool.sol';
 import {IAToken} from 'aave-v3-core/contracts/interfaces/IAToken.sol';
+import {ICreditDelegationToken} from 'aave-v3-core/contracts/interfaces/ICreditDelegationToken.sol';
 import {IBaseTokenWrapper} from './interfaces/IBaseTokenWrapper.sol';
 
 /**
@@ -104,14 +105,33 @@ abstract contract BaseTokenWrapper is Ownable, IBaseTokenWrapper {
   }
 
   /// @inheritdoc IBaseTokenWrapper
-  function borrowToken(uint256 amount, uint16 referralCode) external virtual {}
+  function borrowToken(uint256 amount, uint16 referralCode) external virtual {
+    _borrowToken(amount, msg.sender, referralCode);
+  }
 
   /// @inheritdoc IBaseTokenWrapper
   function borrowTokenWithPermit(
     uint256 amount,
     uint16 referralCode,
     PermitSignature calldata signature
-  ) external virtual {}
+  ) external virtual {
+    if (signature.deadline != 0) {
+      address debtToken = IPool(0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2)
+        .getReserveData(TOKEN_OUT)
+        .variableDebtTokenAddress;
+
+      ICreditDelegationToken(debtToken).delegationWithSig(
+        msg.sender,
+        address(this),
+        amount,
+        signature.deadline,
+        signature.v,
+        signature.r,
+        signature.s
+      );
+    }
+    _borrowToken(amount, msg.sender, referralCode);
+  }
 
   /// @inheritdoc IBaseTokenWrapper
   function rescueTokens(
