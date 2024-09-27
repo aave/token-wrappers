@@ -6,9 +6,9 @@ import {IERC20} from 'aave-v3-core/contracts/dependencies/openzeppelin/contracts
 import {IPool} from 'aave-v3-core/contracts/interfaces/IPool.sol';
 import {IAToken} from 'aave-v3-core/contracts/interfaces/IAToken.sol';
 import {MintableERC20} from 'aave-v3-core/contracts/mocks/tokens/MintableERC20.sol';
+import {ICreditDelegationToken} from '../src/interfaces/ICreditDelegationToken.sol';
 import {IBaseTokenWrapper} from '../src/interfaces/IBaseTokenWrapper.sol';
 import {BaseTokenWrapper} from '../src/BaseTokenWrapper.sol';
-import {ICreditDelegationToken} from '../src/interfaces/ICreditDelegationToken.sol';
 
 interface IERC2612 {
   function nonces(address owner) external view returns (uint256);
@@ -374,9 +374,6 @@ abstract contract BaseTokenWrapperTest is Test {
       0,
       'Unexpected starting tokenIn balance'
     );
-    uint256 estimateFinalBalance = tokenWrapper.getTokenInForTokenOut(
-      aTokenBalance
-    );
 
     vm.startPrank(ALICE);
     IAToken(aTokenOut).approve(address(tokenWrapper), aTokenBalance);
@@ -692,11 +689,7 @@ abstract contract BaseTokenWrapperTest is Test {
 
     vm.startPrank(ALICE);
     tokenIn.approve(address(tokenWrapper), amountScaled);
-    uint256 suppliedAmount = tokenWrapper.supplyToken(
-      amountScaled,
-      referee,
-      REFERRAL_CODE
-    );
+    tokenWrapper.supplyToken(amountScaled, referee, REFERRAL_CODE);
     vm.stopPrank();
 
     assertEq(tokenIn.balanceOf(ALICE), 0, 'Unexpected ending tokenIn balance');
@@ -718,9 +711,6 @@ abstract contract BaseTokenWrapperTest is Test {
       tokenIn.balanceOf(ALICE),
       0,
       'Unexpected starting tokenIn balance'
-    );
-    uint256 estimateFinalBalance = tokenWrapper.getTokenInForTokenOut(
-      aTokenBalance
     );
     vm.startPrank(ALICE);
     IAToken(aTokenOut).approve(address(tokenWrapper), aTokenBalance);
