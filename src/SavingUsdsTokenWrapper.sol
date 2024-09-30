@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity ^0.8.10;
 
-import {IPool} from 'aave-v3-core/contracts/interfaces/IPool.sol';
-import {ICreditDelegationToken} from 'aave-v3-core/contracts/interfaces/ICreditDelegationToken.sol';
 import {IERC20} from 'aave-v3-core/contracts/dependencies/openzeppelin/contracts/IERC20.sol';
 import {IUSDS} from './dependencies/IUSDS.sol';
 import {BaseTokenWrapper} from './BaseTokenWrapper.sol';
@@ -27,35 +25,6 @@ contract SavingUsdsTokenWrapper is BaseTokenWrapper {
     address owner
   ) BaseTokenWrapper(tokenIn, tokenOut, pool, owner) {
     IERC20(tokenIn).approve(tokenOut, type(uint256).max);
-  }
-
-  /// @inheritdoc BaseTokenWrapper
-  function borrowToken(uint256 amount, uint16 referralCode) external override {
-    _borrowToken(amount, msg.sender, referralCode);
-  }
-
-  /// @inheritdoc BaseTokenWrapper
-  function borrowTokenWithPermit(
-    uint256 amount,
-    uint16 referralCode,
-    PermitSignature calldata signature
-  ) external override {
-    if (signature.deadline != 0) {
-      address debtToken = IPool(0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2)
-        .getReserveData(TOKEN_OUT)
-        .variableDebtTokenAddress;
-
-      ICreditDelegationToken(debtToken).delegationWithSig(
-        msg.sender,
-        address(this),
-        amount,
-        signature.deadline,
-        signature.v,
-        signature.r,
-        signature.s
-      );
-    }
-    _borrowToken(amount, msg.sender, referralCode);
   }
 
   /// @inheritdoc BaseTokenWrapper

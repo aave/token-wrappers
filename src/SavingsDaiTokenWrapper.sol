@@ -42,16 +42,6 @@ contract SavingsDaiTokenWrapper is BaseTokenWrapper {
   }
 
   /// @inheritdoc BaseTokenWrapper
-  function _wrapTokenIn(uint256 amount) internal override returns (uint256) {
-    return ISavingsDai(TOKEN_OUT).deposit(amount, address(this));
-  }
-
-  /// @inheritdoc BaseTokenWrapper
-  function _unwrapTokenOut(uint256 amount) internal override returns (uint256) {
-    return ISavingsDai(TOKEN_OUT).redeem(amount, address(this), address(this));
-  }
-
-  /// @inheritdoc BaseTokenWrapper
   function borrowToken(
     uint256 amount,
     uint16 referralCode
@@ -66,5 +56,15 @@ contract SavingsDaiTokenWrapper is BaseTokenWrapper {
     PermitSignature calldata signature
   ) external pure override {
     revert('INVALID_ACTION');
+  }
+
+  /// @inheritdoc BaseTokenWrapper
+  function _wrapTokenIn(uint256 amount) internal override returns (uint256) {
+    return ISavingsDai(TOKEN_OUT).deposit(amount, address(this));
+  }
+
+  /// @inheritdoc BaseTokenWrapper
+  function _unwrapTokenOut(uint256 amount) internal override returns (uint256) {
+    return ISavingsDai(TOKEN_OUT).redeem(amount, address(this), address(this));
   }
 }
