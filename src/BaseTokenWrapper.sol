@@ -8,6 +8,7 @@ import {SafeERC20} from 'aave-v3-core/contracts/dependencies/openzeppelin/contra
 import {GPv2SafeERC20} from 'aave-v3-core/contracts/dependencies/gnosis/contracts/GPv2SafeERC20.sol';
 import {IPool} from 'aave-v3-core/contracts/interfaces/IPool.sol';
 import {IAToken} from 'aave-v3-core/contracts/interfaces/IAToken.sol';
+import {ICreditDelegationToken} from 'aave-v3-core/contracts/interfaces/ICreditDelegationToken.sol';
 import {IBaseTokenWrapper} from './interfaces/IBaseTokenWrapper.sol';
 
 /**
@@ -104,11 +105,32 @@ abstract contract BaseTokenWrapper is Ownable, IBaseTokenWrapper {
   }
 
   /// @inheritdoc IBaseTokenWrapper
-  function borrowToken(uint256 amount, address to) external virtual {
-    require(amount > 0, 'INSUFFICIENT_AMOUNT_TO_BORROW');
-    POOL.borrow(TOKEN_OUT, amount, 2, 0, address(to));
-    uint256 amountIn = _unwrapTokenOut(amount);
-    IERC20(TOKEN_IN).transfer(to, amountIn);
+  function borrowToken(uint256 amount, uint16 referralCode) external virtual {
+    _borrowToken(amount, msg.sender, referralCode);
+  }
+
+  /// @inheritdoc IBaseTokenWrapper
+  function borrowTokenWithPermit(
+    uint256 amount,
+    uint16 referralCode,
+    PermitSignature calldata signature
+  ) external virtual {
+    if (signature.deadline != 0) {
+      address debtToken = IPool(0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2)
+        .getReserveData(TOKEN_OUT)
+        .variableDebtTokenAddress;
+
+      ICreditDelegationToken(debtToken).delegationWithSig(
+        msg.sender,
+        address(this),
+        amount,
+        signature.deadline,
+        signature.v,
+        signature.r,
+        signature.s
+      );
+    }
+    _borrowToken(amount, msg.sender, referralCode);
   }
 
   /// @inheritdoc IBaseTokenWrapper
@@ -185,6 +207,27 @@ abstract contract BaseTokenWrapper is Ownable, IBaseTokenWrapper {
     require(amountUnwrapped > 0, 'INSUFFICIENT_UNWRAPPED_TOKEN_RECEIVED');
     IERC20(TOKEN_IN).safeTransfer(to, amountUnwrapped);
     return amountUnwrapped;
+  }
+
+  /**
+   * @notice Helper to borrow token from the Pool and unwraps it, sending to the recipient
+   * @param amount The amount of token to borrow
+   * @param onBehalfOf The address that will receive the unwrapped token
+   * @param referralCode Code used to register the integrator originating the operation, for potential rewards
+   */
+  function _borrowToken(
+    uint256 amount,
+    address onBehalfOf,
+    uint16 referralCode
+  ) internal {
+    require(amount > 0, 'INSUFFICIENT_AMOUNT_TO_BORROW');
+    uint256 balanceBeforeBorrow = IERC20(TOKEN_OUT).balanceOf(address(this));
+    POOL.borrow(TOKEN_OUT, amount, 2, referralCode, address(onBehalfOf));
+    uint256 balanceAfterBorrow = IERC20(TOKEN_OUT).balanceOf(address(this));
+    uint256 amountIn = _unwrapTokenOut(
+      balanceAfterBorrow - balanceBeforeBorrow
+    );
+    IERC20(TOKEN_IN).transfer(onBehalfOf, amountIn);
   }
 
   /**

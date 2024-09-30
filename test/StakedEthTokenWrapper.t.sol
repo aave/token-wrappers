@@ -35,7 +35,14 @@ contract StakedEthTokenWrapperTest is BaseTokenWrapperTest {
     assertEq(tempTokenWrapper.owner(), OWNER, 'Unexpected owner');
   }
 
-  function testBorrow() public {
+  function _dealTokenIn(address user, uint256 amount) internal override {
+    vm.deal(user, amount);
+    vm.prank(user);
+    (bool success, ) = STETH.call{value: amount}('');
+    require(success);
+  }
+
+  function testBorrowNotPermitted() public {
     uint256 collateralAmount = 1000e18;
     uint256 borrowAmount = 100e18;
     address debtToken = IPool(pool)
@@ -53,23 +60,8 @@ contract StakedEthTokenWrapperTest is BaseTokenWrapperTest {
       address(tokenWrapper),
       borrowAmount
     );
-
-    tokenWrapper.borrowToken(borrowAmount, address(alice));
+    vm.expectRevert('INVALID_ACTION');
+    tokenWrapper.borrowToken(borrowAmount, 0);
     vm.stopPrank();
-
-    uint256 borrowedAmount = tokenWrapper.getTokenInForTokenOut(borrowAmount);
-    // Allow OBOB for rounding to nearest wei
-    assertApproxEqAbs(
-      IERC20(tokenWrapper.TOKEN_IN()).balanceOf(address(alice)),
-      borrowedAmount,
-      1
-    );
-  }
-
-  function _dealTokenIn(address user, uint256 amount) internal override {
-    vm.deal(user, amount);
-    vm.prank(user);
-    (bool success, ) = STETH.call{value: amount}('');
-    require(success);
   }
 }

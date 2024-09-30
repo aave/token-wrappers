@@ -6,8 +6,9 @@ import {IERC20} from 'aave-v3-core/contracts/dependencies/openzeppelin/contracts
 import {IPool} from 'aave-v3-core/contracts/interfaces/IPool.sol';
 import {IAToken} from 'aave-v3-core/contracts/interfaces/IAToken.sol';
 import {MintableERC20} from 'aave-v3-core/contracts/mocks/tokens/MintableERC20.sol';
-import {BaseTokenWrapper} from '../src/BaseTokenWrapper.sol';
 import {IBaseTokenWrapper} from '../src/interfaces/IBaseTokenWrapper.sol';
+import {BaseTokenWrapper} from '../src/BaseTokenWrapper.sol';
+import {ICreditDelegationToken} from '../src/interfaces/ICreditDelegationToken.sol';
 
 interface IERC2612 {
   function nonces(address owner) external view returns (uint256);
@@ -708,6 +709,7 @@ abstract contract BaseTokenWrapperTest is Test {
 
   function testFuzzSupplyToken(uint256 amount, address referee) public {
     amount = bound(amount, 1, MAX_DEAL_AMOUNT);
+    vm.assume(IAToken(aTokenOut).balanceOf(referee) == 0);
     IERC20 tokenIn = IERC20(tokenWrapper.TOKEN_IN());
 
     uint256 amountScaled = amount * 10 ** tokenInDecimals;
@@ -726,8 +728,9 @@ abstract contract BaseTokenWrapperTest is Test {
     vm.stopPrank();
 
     assertEq(tokenIn.balanceOf(ALICE), 0, 'Unexpected ending tokenIn balance');
-    assertLe(
-      estimateFinalBalance - IAToken(aTokenOut).balanceOf(referee),
+    assertApproxEqAbs(
+      estimateFinalBalance,
+      IAToken(aTokenOut).balanceOf(referee),
       1,
       'Unexpected ending aToken balance'
     );

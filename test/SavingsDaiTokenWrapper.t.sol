@@ -39,23 +39,16 @@ contract SavingsDaiTokenWrapperTest is BaseTokenWrapperTest {
     assertEq(tempTokenWrapper.owner(), OWNER, 'Unexpected owner');
   }
 
-  function testBorrow() public {
+  function testBorrowNotPermitted() public {
     uint256 collateralAmount = 1000e18;
     uint256 borrowAmount = 100e18;
     address debtToken = IPool(pool)
       .getReserveData(tokenWrapper.TOKEN_OUT())
       .variableDebtTokenAddress;
 
-    // Prank pool admin and set borrowing enabled for SDAI on pool configurator
-    vm.startPrank(ADMIN);
-    IPoolConfigurator(POOL_CONFIGURATOR).setReserveBorrowing(
-      tokenWrapper.TOKEN_OUT(),
-      true
-    );
-
     address alice = makeAddr('ALICE');
     deal(WETH, alice, collateralAmount);
-    changePrank(alice);
+    vm.startPrank(alice);
 
     IERC20(WETH).approve(address(pool), collateralAmount);
     IPool(pool).supply(WETH, collateralAmount, alice, 0);
@@ -64,14 +57,8 @@ contract SavingsDaiTokenWrapperTest is BaseTokenWrapperTest {
       address(tokenWrapper),
       borrowAmount
     );
-
-    tokenWrapper.borrowToken(borrowAmount, address(alice));
+    vm.expectRevert('INVALID_ACTION');
+    tokenWrapper.borrowToken(borrowAmount, 0);
     vm.stopPrank();
-
-    uint256 borrowedAmount = tokenWrapper.getTokenInForTokenOut(borrowAmount);
-    assertEq(
-      IERC20(tokenWrapper.TOKEN_IN()).balanceOf(address(alice)),
-      borrowedAmount
-    );
   }
 }
