@@ -43,11 +43,6 @@ contract Generic4626WrapperTest is BaseTokenWrapperTest {
     USDSToken.approve(SUSDS, 1e50);
     SUSDSToken.deposit(1e50, address(this));
 
-    /*
-    vm.createSelectFork(
-      'https://rpc.tenderly.co/fork/881012fd-267f-41dc-93ba-8eb025b8bce2'
-    );
-    */
     pool = 0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
 
     tokenWrapper = new Generic4626Wrapper(USDS, SUSDS, pool, OWNER);
@@ -90,48 +85,20 @@ contract Generic4626WrapperTest is BaseTokenWrapperTest {
       tokenWrapper.TOKEN_OUT(),
       true
     );
-    /*
-    IPoolConfigurator(POOL_CONFIGURATOR).setSupplyCap(
-      tokenWrapper.TOKEN_OUT(),
-      type(uint256).max
-    );
-    IPoolConfigurator(POOL_CONFIGURATOR).setBorrowCap(
-      tokenWrapper.TOKEN_OUT(),
-      type(uint256).max
-    );
-    */
     IPoolConfigurator(POOL_CONFIGURATOR).setReserveBorrowing(
       tokenWrapper.TOKEN_OUT(),
       true
     );
-    /*
-    IPoolConfigurator(POOL_CONFIGURATOR).configureReserveAsCollateral(
-      SUSDS,
-      200, // 50%
-      400, // 60%
-      1005 // 105%
-    );
-    */
 
-    // Set asset source
+    // Set asset oracle
     address[] memory assets = new address[](1);
     assets[0] = tokenWrapper.TOKEN_OUT();
     address[] memory sources = new address[](1);
-    sources[0] = 0xD110cac5d8682A3b045D5524a9903E031d70FCCd;
-    IAaveOracle(0x54586bE62E3c3580375aE3723C145253060Ca0C2).setAssetSources(
-      assets,
-      sources
-    );
-
+    sources[0] = 0xB4aB0c94159bc2d8C133946E7241368fc2F2a010;
+    IAaveOracle(AAVE_ORACLE).setAssetSources(assets, sources);
     vm.stopPrank();
 
-    /*
-    // Try seeing if borrowing is enabled on the new asset
-    DataTypes.ReserveData memory reserveData = IPool(pool).getReserveData(
-      tokenWrapper.TOKEN_OUT()
-    );
-    */
-
+    // Supply some of the new asset to pool
     uint256 collateralAmount = 1000e18;
     deal(SUSDS, address(this), collateralAmount);
     IERC20(SUSDS).approve(address(pool), collateralAmount);
