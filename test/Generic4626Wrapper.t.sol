@@ -7,6 +7,7 @@ import {IDefaultInterestRateStrategyV2} from 'aave-v3-core/contracts/interfaces/
 import {IAaveOracle} from 'aave-v3-core/contracts/interfaces/IAaveOracle.sol';
 import {IERC20} from '../src/dependencies/IERC20.sol';
 import {ERC20} from '../src/dependencies/ERC20.sol';
+import {ERC20Permit} from '../src/dependencies/ERC20Permit.sol';
 import {IERC20WithPermit} from 'aave-v3-core/contracts/interfaces/IERC20WithPermit.sol';
 import {IPool} from 'aave-v3-core/contracts/interfaces/IPool.sol';
 import {IPoolConfigurator} from 'aave-v3-core/contracts/interfaces/IPoolConfigurator.sol';
@@ -34,7 +35,7 @@ contract Generic4626WrapperTest is BaseTokenWrapperTest {
 
   function setUp() public {
     vm.createSelectFork(vm.envString('ETH_RPC_URL'), 20784588);
-    USDSToken = new MockERC20('USDS', 'USDS');
+    USDSToken = new MockERC20('USDS');
     SUSDSToken = new MockERC4626(USDSToken);
     USDS = address(USDSToken);
     SUSDS = address(SUSDSToken);
