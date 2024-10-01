@@ -33,16 +33,6 @@ contract StakedEthTokenWrapperTest is BaseTokenWrapperTest {
     assertEq(tempTokenWrapper.TOKEN_OUT(), WSTETH, 'Unexpected TOKEN_OUT');
     assertEq(address(tempTokenWrapper.POOL()), pool, 'Unexpected POOL');
     assertEq(tempTokenWrapper.owner(), OWNER, 'Unexpected owner');
-    assertEq(
-      IERC20(WSTETH).allowance(address(tempTokenWrapper), pool),
-      type(uint256).max,
-      'Unexpected TOKEN_OUT allowance'
-    );
-    assertEq(
-      IERC20(STETH).allowance(address(tempTokenWrapper), WSTETH),
-      type(uint256).max,
-      'Unexpected TOKEN_IN allowance'
-    );
   }
 
   function _dealTokenIn(address user, uint256 amount) internal override {

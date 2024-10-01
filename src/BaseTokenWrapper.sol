@@ -4,6 +4,7 @@ pragma solidity ^0.8.10;
 import {Ownable} from 'aave-v3-core/contracts/dependencies/openzeppelin/contracts/Ownable.sol';
 import {IERC20} from 'aave-v3-core/contracts/dependencies/openzeppelin/contracts/IERC20.sol';
 import {IERC20WithPermit} from 'aave-v3-core/contracts/interfaces/IERC20WithPermit.sol';
+import {SafeERC20} from 'aave-v3-core/contracts/dependencies/openzeppelin/contracts/SafeERC20.sol';
 import {GPv2SafeERC20} from 'aave-v3-core/contracts/dependencies/gnosis/contracts/GPv2SafeERC20.sol';
 import {IPool} from 'aave-v3-core/contracts/interfaces/IPool.sol';
 import {IAToken} from 'aave-v3-core/contracts/interfaces/IAToken.sol';
@@ -39,7 +40,6 @@ abstract contract BaseTokenWrapper is Ownable, IBaseTokenWrapper {
     TOKEN_OUT = tokenOut;
     POOL = IPool(pool);
     transferOwnership(owner);
-    IERC20(tokenOut).approve(pool, type(uint256).max);
   }
 
   /// @inheritdoc IBaseTokenWrapper
@@ -174,7 +174,9 @@ abstract contract BaseTokenWrapper is Ownable, IBaseTokenWrapper {
     IERC20(TOKEN_IN).safeTransferFrom(msg.sender, address(this), amount);
     uint256 amountWrapped = _wrapTokenIn(amount);
     require(amountWrapped > 0, 'INSUFFICIENT_WRAPPED_TOKEN_RECEIVED');
+    SafeERC20.safeApprove(IERC20(TOKEN_OUT), address(POOL), amountWrapped);
     POOL.supply(TOKEN_OUT, amountWrapped, onBehalfOf, referralCode);
+    SafeERC20.safeApprove(IERC20(TOKEN_OUT), address(POOL), 0);
     return amountWrapped;
   }
 
