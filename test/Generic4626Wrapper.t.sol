@@ -3,6 +3,8 @@ pragma solidity ^0.8.10;
 import 'forge-std/console2.sol';
 
 import {DataTypes} from 'aave-v3-core/contracts/protocol/libraries/types/DataTypes.sol';
+import {IDefaultInterestRateStrategyV2} from 'aave-v3-core/contracts/interfaces/IDefaultInterestRateStrategyV2.sol';
+import {IAaveOracle} from 'aave-v3-core/contracts/interfaces/IAaveOracle.sol';
 import {IERC20} from '../src/dependencies/IERC20.sol';
 import {ERC20} from '../src/dependencies/ERC20.sol';
 import {IERC20WithPermit} from 'aave-v3-core/contracts/interfaces/IERC20WithPermit.sol';
@@ -28,13 +30,17 @@ contract Generic4626WrapperTest is BaseTokenWrapperTest {
   address constant POOL_CONFIGURATOR =
     0x64b761D848206f447Fe2dd461b0c635Ec39EbB27;
   address constant ADMIN = 0x5300A1a15135EA4dc7aD5a167152C01EFc9b192A;
+  address constant AAVE_ORACLE = 0x54586bE62E3c3580375aE3723C145253060Ca0C2;
 
   function setUp() public {
     vm.createSelectFork(vm.envString('ETH_RPC_URL'), 20784588);
-    USDSToken = new ERC20('USDS', 'USDS');
+    USDSToken = new MockERC20('USDS', 'USDS');
     SUSDSToken = new MockERC4626(USDSToken);
     USDS = address(USDSToken);
     SUSDS = address(SUSDSToken);
+
+    USDSToken.approve(SUSDS, 1e50);
+    SUSDSToken.deposit(1e50, address(this));
 
     /*
     vm.createSelectFork(
@@ -47,13 +53,22 @@ contract Generic4626WrapperTest is BaseTokenWrapperTest {
     tokenInDecimals = 18;
     permitSupported = true;
 
+    IDefaultInterestRateStrategyV2.InterestRateData
+      memory interestRateData = IDefaultInterestRateStrategyV2
+        .InterestRateData({
+          optimalUsageRatio: 8000,
+          baseVariableBorrowRate: 1000,
+          variableRateSlope1: 1000,
+          variableRateSlope2: 1000
+        });
+
     ConfiguratorInputTypes.InitReserveInput[]
       memory reserveInputs = new ConfiguratorInputTypes.InitReserveInput[](1);
     reserveInputs[0] = ConfiguratorInputTypes.InitReserveInput({
       aTokenImpl: 0x7EfFD7b47Bfd17e52fB7559d3f924201b9DbfF3d,
       stableDebtTokenImpl: 0x15C5620dfFaC7c7366EED66C20Ad222DDbB1eD57,
       variableDebtTokenImpl: 0xaC725CB59D16C81061BDeA61041a8A5e73DA9EC6,
-      underlyingAssetDecimals: ERC20(tokenWrapper.TOKEN_OUT()).decimals(),
+      useVirtualBalance: false,
       interestRateStrategyAddress: 0x847A3364Cc5fE389283bD821cfC8A477288D9e82,
       underlyingAsset: tokenWrapper.TOKEN_OUT(),
       treasury: 0x464C71f6c2F760DdA6093dCB91C24c39e5d6e18c,
@@ -64,7 +79,8 @@ contract Generic4626WrapperTest is BaseTokenWrapperTest {
       variableDebtTokenSymbol: 'VSUSDS',
       stableDebtTokenName: 'StableDebtSUSDS',
       stableDebtTokenSymbol: 'SSUSDS',
-      params: bytes('')
+      params: bytes(''),
+      interestRateData: abi.encode(interestRateData)
     });
 
     vm.startPrank(ADMIN);
@@ -73,6 +89,7 @@ contract Generic4626WrapperTest is BaseTokenWrapperTest {
       tokenWrapper.TOKEN_OUT(),
       true
     );
+    /*
     IPoolConfigurator(POOL_CONFIGURATOR).setSupplyCap(
       tokenWrapper.TOKEN_OUT(),
       type(uint256).max
@@ -81,22 +98,38 @@ contract Generic4626WrapperTest is BaseTokenWrapperTest {
       tokenWrapper.TOKEN_OUT(),
       type(uint256).max
     );
+    */
     IPoolConfigurator(POOL_CONFIGURATOR).setReserveBorrowing(
       tokenWrapper.TOKEN_OUT(),
       true
     );
+    /*
     IPoolConfigurator(POOL_CONFIGURATOR).configureReserveAsCollateral(
       SUSDS,
       1e18,
       1e18,
       1e18
     );
+    */
+
+    // Set asset source
+    address[] memory assets = new address[](1);
+    assets[0] = tokenWrapper.TOKEN_OUT();
+    address[] memory sources = new address[](1);
+    sources[0] = 0xD110cac5d8682A3b045D5524a9903E031d70FCCd;
+    IAaveOracle(0x54586bE62E3c3580375aE3723C145253060Ca0C2).setAssetSources(
+      assets,
+      sources
+    );
+
     vm.stopPrank();
 
+    /*
     // Try seeing if borrowing is enabled on the new asset
     DataTypes.ReserveData memory reserveData = IPool(pool).getReserveData(
       tokenWrapper.TOKEN_OUT()
     );
+    */
 
     uint256 collateralAmount = 1000e18;
     deal(SUSDS, address(this), collateralAmount);
