@@ -30,35 +30,6 @@ contract Generic4626Wrapper is BaseTokenWrapper {
     IERC20(tokenIn).approve(tokenOut, type(uint256).max);
   }
 
-  // @inheritdoc BaseTokenWrapper
-  function borrowToken(uint256 amount, uint16 referralCode) external override {
-    _borrowToken(amount, msg.sender, referralCode);
-  }
-
-  /// @inheritdoc BaseTokenWrapper
-  function borrowTokenWithPermit(
-    uint256 amount,
-    uint16 referralCode,
-    PermitSignature calldata signature
-  ) external override {
-    if (signature.deadline != 0) {
-      address debtToken = IPool(0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2)
-        .getReserveData(TOKEN_OUT)
-        .variableDebtTokenAddress;
-
-      ICreditDelegationToken(debtToken).delegationWithSig(
-        msg.sender,
-        address(this),
-        amount,
-        signature.deadline,
-        signature.v,
-        signature.r,
-        signature.s
-      );
-    }
-    _borrowToken(amount, msg.sender, referralCode);
-  }
-
   /// @inheritdoc BaseTokenWrapper
   function getTokenOutForTokenIn(
     uint256 amount

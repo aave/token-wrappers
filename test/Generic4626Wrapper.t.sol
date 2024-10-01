@@ -23,28 +23,28 @@ contract Generic4626WrapperTest is BaseTokenWrapperTest {
     0x64b761D848206f447Fe2dd461b0c635Ec39EbB27;
   address constant ADMIN = 0x5300A1a15135EA4dc7aD5a167152C01EFc9b192A;
   address constant AAVE_ORACLE = 0x54586bE62E3c3580375aE3723C145253060Ca0C2;
-  MockERC20 USDSToken;
-  MockERC4626 SUSDSToken;
-  address USDS;
-  address SUSDS;
+  MockERC20 unwrappedToken;
+  MockERC4626 wrappedToken;
+  address unwrapped;
+  address wrapped;
 
   function setUp() public {
     vm.createSelectFork(vm.envString('ETH_RPC_URL'), 20784588);
     pool = 0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
-    USDSToken = new MockERC20('USDS');
-    SUSDSToken = new MockERC4626(USDSToken);
-    USDS = address(USDSToken);
-    SUSDS = address(SUSDSToken);
+    unwrappedToken = new MockERC20('UNWRAPPED');
+    wrappedToken = new MockERC4626(unwrappedToken);
+    unwrapped = address(unwrappedToken);
+    wrapped = address(wrappedToken);
 
     // Put some underlying asset into the ERC4626 vault
-    USDSToken.approve(SUSDS, 1e50);
-    SUSDSToken.deposit(1e50, address(this));
+    unwrappedToken.approve(wrapped, 1e50);
+    wrappedToken.deposit(1e50, address(this));
 
     // Airdrop some extra USDS to the vault
-    deal(USDS, address(this), 10e18);
-    USDSToken.transfer(SUSDS, 10e18);
+    deal(unwrapped, address(this), 10e18);
+    unwrappedToken.transfer(wrapped, 10e18);
 
-    tokenWrapper = new Generic4626Wrapper(USDS, SUSDS, pool, OWNER);
+    tokenWrapper = new Generic4626Wrapper(unwrapped, wrapped, pool, OWNER);
     tokenInDecimals = 18;
     permitSupported = true;
 
@@ -68,12 +68,12 @@ contract Generic4626WrapperTest is BaseTokenWrapperTest {
       underlyingAsset: tokenWrapper.TOKEN_OUT(),
       treasury: 0x464C71f6c2F760DdA6093dCB91C24c39e5d6e18c,
       incentivesController: 0x8164Cc65827dcFe994AB23944CBC90e0aa80bFcb,
-      aTokenName: 'AaveSUSDS',
-      aTokenSymbol: 'ASUSDS',
-      variableDebtTokenName: 'VariableDebtSUSDS',
-      variableDebtTokenSymbol: 'VSUSDS',
-      stableDebtTokenName: 'StableDebtSUSDS',
-      stableDebtTokenSymbol: 'SSUSDS',
+      aTokenName: 'AaveWrapped',
+      aTokenSymbol: 'AWrapped',
+      variableDebtTokenName: 'VariableDebtWrapped',
+      variableDebtTokenSymbol: 'VWrapped',
+      stableDebtTokenName: 'StableDebtWrapped',
+      stableDebtTokenSymbol: 'SWrapped',
       params: bytes(''),
       interestRateData: abi.encode(interestRateData)
     });
@@ -99,9 +99,14 @@ contract Generic4626WrapperTest is BaseTokenWrapperTest {
 
     // Supply some of the new asset to pool
     uint256 collateralAmount = 1000e18;
-    deal(SUSDS, address(this), collateralAmount);
-    IERC20(SUSDS).approve(address(pool), collateralAmount);
-    IPool(pool).supply(SUSDS, collateralAmount, address(this), 0);
+    deal(tokenWrapper.TOKEN_OUT(), address(this), collateralAmount);
+    IERC20(tokenWrapper.TOKEN_OUT()).approve(address(pool), collateralAmount);
+    IPool(pool).supply(
+      tokenWrapper.TOKEN_OUT(),
+      collateralAmount,
+      address(this),
+      0
+    );
 
     aTokenOut = IPool(pool)
       .getReserveData(tokenWrapper.TOKEN_OUT())
@@ -110,22 +115,22 @@ contract Generic4626WrapperTest is BaseTokenWrapperTest {
 
   function testConstructor() public override {
     Generic4626Wrapper tempTokenWrapper = new Generic4626Wrapper(
-      USDS,
-      SUSDS,
+      unwrapped,
+      wrapped,
       pool,
       OWNER
     );
-    assertEq(tempTokenWrapper.TOKEN_IN(), USDS, 'Unexpected TOKEN_IN');
-    assertEq(tempTokenWrapper.TOKEN_OUT(), SUSDS, 'Unexpected TOKEN_OUT');
+    assertEq(tempTokenWrapper.TOKEN_IN(), unwrapped, 'Unexpected TOKEN_IN');
+    assertEq(tempTokenWrapper.TOKEN_OUT(), wrapped, 'Unexpected TOKEN_OUT');
     assertEq(address(tempTokenWrapper.POOL()), pool, 'Unexpected POOL');
     assertEq(tempTokenWrapper.owner(), OWNER, 'Unexpected owner');
     assertEq(
-      IERC20(SUSDS).allowance(address(tempTokenWrapper), pool),
+      IERC20(wrapped).allowance(address(tempTokenWrapper), pool),
       type(uint256).max,
       'Unexpected TOKEN_OUT allowance'
     );
     assertEq(
-      IERC20(USDS).allowance(address(tempTokenWrapper), SUSDS),
+      IERC20(unwrapped).allowance(address(tempTokenWrapper), wrapped),
       type(uint256).max,
       'Unexpected TOKEN_IN allowance'
     );
