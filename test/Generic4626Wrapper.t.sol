@@ -68,7 +68,7 @@ contract Generic4626WrapperTest is BaseTokenWrapperTest {
       aTokenImpl: 0x7EfFD7b47Bfd17e52fB7559d3f924201b9DbfF3d,
       stableDebtTokenImpl: 0x15C5620dfFaC7c7366EED66C20Ad222DDbB1eD57,
       variableDebtTokenImpl: 0xaC725CB59D16C81061BDeA61041a8A5e73DA9EC6,
-      useVirtualBalance: false,
+      useVirtualBalance: true,
       interestRateStrategyAddress: 0x847A3364Cc5fE389283bD821cfC8A477288D9e82,
       underlyingAsset: tokenWrapper.TOKEN_OUT(),
       treasury: 0x464C71f6c2F760DdA6093dCB91C24c39e5d6e18c,
@@ -106,9 +106,9 @@ contract Generic4626WrapperTest is BaseTokenWrapperTest {
     /*
     IPoolConfigurator(POOL_CONFIGURATOR).configureReserveAsCollateral(
       SUSDS,
-      1e18,
-      1e18,
-      1e18
+      200, // 50%
+      400, // 60%
+      1005 // 105%
     );
     */
 
@@ -136,7 +136,7 @@ contract Generic4626WrapperTest is BaseTokenWrapperTest {
     IERC20(SUSDS).approve(address(pool), collateralAmount);
     IPool(pool).supply(SUSDS, collateralAmount, address(this), 0);
 
-    aTokenOut = IPool(pool).getReserveData(SUSDS).variableDebtTokenAddress;
+    aTokenOut = 0x10Ac93971cdb1F5c778144084242374473c350Da;
   }
 
   function testConstructor() public override {
