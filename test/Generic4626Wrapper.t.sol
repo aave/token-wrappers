@@ -2,21 +2,16 @@
 pragma solidity ^0.8.10;
 import 'forge-std/console2.sol';
 
-import {DataTypes} from 'aave-v3-core/contracts/protocol/libraries/types/DataTypes.sol';
 import {IDefaultInterestRateStrategyV2} from 'aave-v3-core/contracts/interfaces/IDefaultInterestRateStrategyV2.sol';
 import {IAaveOracle} from 'aave-v3-core/contracts/interfaces/IAaveOracle.sol';
-import {IERC20} from '../src/dependencies/IERC20.sol';
-import {ERC20} from '../src/dependencies/ERC20.sol';
-import {ERC20Permit} from '../src/dependencies/ERC20Permit.sol';
-import {IERC20WithPermit} from 'aave-v3-core/contracts/interfaces/IERC20WithPermit.sol';
 import {IPool} from 'aave-v3-core/contracts/interfaces/IPool.sol';
 import {IPoolConfigurator} from 'aave-v3-core/contracts/interfaces/IPoolConfigurator.sol';
 import {ConfiguratorInputTypes} from 'aave-v3-core/contracts/protocol/libraries/types/ConfiguratorInputTypes.sol';
 import {IAToken} from 'aave-v3-core/contracts/interfaces/IAToken.sol';
+import {IERC20} from '../src/dependencies/IERC20.sol';
 import {Generic4626Wrapper} from '../src/Generic4626Wrapper.sol';
 import {ICreditDelegationToken} from '../src/interfaces/ICreditDelegationToken.sol';
 import {IBaseTokenWrapper} from '../src/interfaces/IBaseTokenWrapper.sol';
-import {ERC4626} from '../src/dependencies/ERC4626.sol';
 import {MockERC4626} from './mocks/MockERC4626.sol';
 import {MockERC20} from './mocks/MockERC20.sol';
 import {SigUtils} from './utils/SigUtils.sol';
@@ -24,26 +19,30 @@ import {BaseTokenWrapperTest} from './BaseTokenWrapper.t.sol';
 
 contract Generic4626WrapperTest is BaseTokenWrapperTest {
   address constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-  ERC20 USDSToken;
-  ERC4626 SUSDSToken;
-  address USDS;
-  address SUSDS;
   address constant POOL_CONFIGURATOR =
     0x64b761D848206f447Fe2dd461b0c635Ec39EbB27;
   address constant ADMIN = 0x5300A1a15135EA4dc7aD5a167152C01EFc9b192A;
   address constant AAVE_ORACLE = 0x54586bE62E3c3580375aE3723C145253060Ca0C2;
+  MockERC20 USDSToken;
+  MockERC4626 SUSDSToken;
+  address USDS;
+  address SUSDS;
 
   function setUp() public {
     vm.createSelectFork(vm.envString('ETH_RPC_URL'), 20784588);
+    pool = 0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
     USDSToken = new MockERC20('USDS');
     SUSDSToken = new MockERC4626(USDSToken);
     USDS = address(USDSToken);
     SUSDS = address(SUSDSToken);
 
+    // Put some underlying asset into the ERC4626 vault
     USDSToken.approve(SUSDS, 1e50);
     SUSDSToken.deposit(1e50, address(this));
 
-    pool = 0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
+    // Airdrop some extra USDS to the vault
+    deal(USDS, address(this), 10e18);
+    USDSToken.transfer(SUSDS, 10e18);
 
     tokenWrapper = new Generic4626Wrapper(USDS, SUSDS, pool, OWNER);
     tokenInDecimals = 18;
@@ -104,7 +103,9 @@ contract Generic4626WrapperTest is BaseTokenWrapperTest {
     IERC20(SUSDS).approve(address(pool), collateralAmount);
     IPool(pool).supply(SUSDS, collateralAmount, address(this), 0);
 
-    aTokenOut = 0x10Ac93971cdb1F5c778144084242374473c350Da;
+    aTokenOut = IPool(pool)
+      .getReserveData(tokenWrapper.TOKEN_OUT())
+      .aTokenAddress;
   }
 
   function testConstructor() public override {
