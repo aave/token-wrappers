@@ -2,9 +2,7 @@
 pragma solidity ^0.8.10;
 import 'forge-std/console2.sol';
 
-import {DataTypes} from 'aave-v3-core/contracts/protocol/libraries/types/DataTypes.sol';
 import {IERC20} from 'aave-v3-core/contracts/dependencies/openzeppelin/contracts/IERC20.sol';
-import {IERC20WithPermit} from 'aave-v3-core/contracts/interfaces/IERC20WithPermit.sol';
 import {IPool} from 'aave-v3-core/contracts/interfaces/IPool.sol';
 import {IAToken} from 'aave-v3-core/contracts/interfaces/IAToken.sol';
 import {SavingUsdsTokenWrapper} from '../src/SavingUsdsTokenWrapper.sol';

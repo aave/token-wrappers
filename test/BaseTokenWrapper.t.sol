@@ -3,10 +3,8 @@ pragma solidity ^0.8.10;
 
 import {Test} from 'forge-std/Test.sol';
 import {IERC20} from 'aave-v3-core/contracts/dependencies/openzeppelin/contracts/IERC20.sol';
-import {IPool} from 'aave-v3-core/contracts/interfaces/IPool.sol';
 import {IAToken} from 'aave-v3-core/contracts/interfaces/IAToken.sol';
 import {MintableERC20} from 'aave-v3-core/contracts/mocks/tokens/MintableERC20.sol';
-import {ICreditDelegationToken} from '../src/interfaces/ICreditDelegationToken.sol';
 import {IBaseTokenWrapper} from '../src/interfaces/IBaseTokenWrapper.sol';
 import {BaseTokenWrapper} from '../src/BaseTokenWrapper.sol';
 
@@ -319,11 +317,11 @@ abstract contract BaseTokenWrapperTest is Test {
         'Unexpected ending aToken balance'
       );
 
-    assertEq(
-      tokenOut.allowance(address(tokenWrapper), pool),
-      0,
-      'Unexpected TOKEN_OUT allowance'
-    );
+      assertEq(
+        tokenOut.allowance(address(tokenWrapper), pool),
+        0,
+        'Unexpected TOKEN_OUT allowance'
+      );
     } else {
       vm.startPrank(ALICE);
       vm.expectRevert();

@@ -3,7 +3,6 @@ pragma solidity ^0.8.10;
 
 import {IERC20} from 'aave-v3-core/contracts/dependencies/openzeppelin/contracts/IERC20.sol';
 import {IPool} from 'aave-v3-core/contracts/interfaces/IPool.sol';
-import {IPoolConfigurator} from 'aave-v3-core/contracts/interfaces/IPoolConfigurator.sol';
 import {BaseTokenWrapperTest} from './BaseTokenWrapper.t.sol';
 import {SavingsDaiTokenWrapper} from '../src/SavingsDaiTokenWrapper.sol';
 import {ICreditDelegationToken} from '../src/interfaces/ICreditDelegationToken.sol';
