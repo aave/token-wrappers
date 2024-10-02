@@ -40,7 +40,7 @@ contract Generic4626WrapperTest is BaseTokenWrapperTest {
     unwrappedToken.approve(wrapped, 1e50);
     wrappedToken.deposit(1e50, address(this));
 
-    // Airdrop some extra USDS to the vault
+    // Airdrop some extra underlying asset to the vault
     deal(unwrapped, address(this), 10e18);
     unwrappedToken.transfer(wrapped, 10e18);
 
