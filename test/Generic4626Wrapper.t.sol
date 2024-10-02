@@ -2,8 +2,10 @@
 pragma solidity ^0.8.10;
 import 'forge-std/console2.sol';
 
+import {AaveV3Ethereum, AaveV3EthereumAssets} from 'aave-address-book/AaveV3Ethereum.sol';
 import {IDefaultInterestRateStrategyV2} from 'aave-v3-core/contracts/interfaces/IDefaultInterestRateStrategyV2.sol';
 import {IAaveOracle} from 'aave-v3-core/contracts/interfaces/IAaveOracle.sol';
+import {MockAggregator} from 'aave-v3-core/contracts/mocks/oracle/CLAggregators/MockAggregator.sol';
 import {IPool} from 'aave-v3-core/contracts/interfaces/IPool.sol';
 import {IPoolConfigurator} from 'aave-v3-core/contracts/interfaces/IPoolConfigurator.sol';
 import {ConfiguratorInputTypes} from 'aave-v3-core/contracts/protocol/libraries/types/ConfiguratorInputTypes.sol';
@@ -18,11 +20,11 @@ import {SigUtils} from './utils/SigUtils.sol';
 import {BaseTokenWrapperTest} from './BaseTokenWrapper.t.sol';
 
 contract Generic4626WrapperTest is BaseTokenWrapperTest {
-  address constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-  address constant POOL_CONFIGURATOR =
-    0x64b761D848206f447Fe2dd461b0c635Ec39EbB27;
-  address constant ADMIN = 0x5300A1a15135EA4dc7aD5a167152C01EFc9b192A;
-  address constant AAVE_ORACLE = 0x54586bE62E3c3580375aE3723C145253060Ca0C2;
+  address constant WETH = AaveV3EthereumAssets.WETH_UNDERLYING;
+  address constant ADMIN = AaveV3Ethereum.ACL_ADMIN;
+  IPoolConfigurator constant POOL_CONFIGURATOR =
+    AaveV3Ethereum.POOL_CONFIGURATOR;
+  IAaveOracle constant AAVE_ORACLE = AaveV3Ethereum.ORACLE;
   MockERC20 unwrappedToken;
   MockERC4626 wrappedToken;
   address unwrapped;
@@ -30,7 +32,7 @@ contract Generic4626WrapperTest is BaseTokenWrapperTest {
 
   function setUp() public {
     vm.createSelectFork(vm.envString('ETH_RPC_URL'), 20784588);
-    pool = 0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
+    pool = address(AaveV3Ethereum.POOL);
     unwrappedToken = new MockERC20('UNWRAPPED');
     wrappedToken = new MockERC4626(unwrappedToken);
     unwrapped = address(unwrappedToken);
@@ -60,14 +62,16 @@ contract Generic4626WrapperTest is BaseTokenWrapperTest {
     ConfiguratorInputTypes.InitReserveInput[]
       memory reserveInputs = new ConfiguratorInputTypes.InitReserveInput[](1);
     reserveInputs[0] = ConfiguratorInputTypes.InitReserveInput({
-      aTokenImpl: 0x7EfFD7b47Bfd17e52fB7559d3f924201b9DbfF3d,
-      stableDebtTokenImpl: 0x15C5620dfFaC7c7366EED66C20Ad222DDbB1eD57,
-      variableDebtTokenImpl: 0xaC725CB59D16C81061BDeA61041a8A5e73DA9EC6,
+      aTokenImpl: AaveV3Ethereum.DEFAULT_A_TOKEN_IMPL_REV_1,
+      stableDebtTokenImpl: AaveV3Ethereum.DEFAULT_STABLE_DEBT_TOKEN_IMPL_REV_1,
+      variableDebtTokenImpl: AaveV3Ethereum
+        .DEFAULT_VARIABLE_DEBT_TOKEN_IMPL_REV_1,
       useVirtualBalance: true,
-      interestRateStrategyAddress: 0x847A3364Cc5fE389283bD821cfC8A477288D9e82,
+      interestRateStrategyAddress: AaveV3EthereumAssets
+        .WETH_INTEREST_RATE_STRATEGY,
       underlyingAsset: tokenWrapper.TOKEN_OUT(),
-      treasury: 0x464C71f6c2F760DdA6093dCB91C24c39e5d6e18c,
-      incentivesController: 0x8164Cc65827dcFe994AB23944CBC90e0aa80bFcb,
+      treasury: address(AaveV3Ethereum.COLLECTOR),
+      incentivesController: AaveV3Ethereum.DEFAULT_INCENTIVES_CONTROLLER,
       aTokenName: 'AaveWrapped',
       aTokenSymbol: 'AWrapped',
       variableDebtTokenName: 'VariableDebtWrapped',
@@ -79,22 +83,17 @@ contract Generic4626WrapperTest is BaseTokenWrapperTest {
     });
 
     vm.startPrank(ADMIN);
-    IPoolConfigurator(POOL_CONFIGURATOR).initReserves(reserveInputs);
-    IPoolConfigurator(POOL_CONFIGURATOR).setReserveActive(
-      tokenWrapper.TOKEN_OUT(),
-      true
-    );
-    IPoolConfigurator(POOL_CONFIGURATOR).setReserveBorrowing(
-      tokenWrapper.TOKEN_OUT(),
-      true
-    );
+    POOL_CONFIGURATOR.initReserves(reserveInputs);
+    POOL_CONFIGURATOR.setReserveActive(tokenWrapper.TOKEN_OUT(), true);
+    POOL_CONFIGURATOR.setReserveBorrowing(tokenWrapper.TOKEN_OUT(), true);
 
     // Set asset oracle
+    MockAggregator oracle = new MockAggregator(1);
     address[] memory assets = new address[](1);
     assets[0] = tokenWrapper.TOKEN_OUT();
     address[] memory sources = new address[](1);
-    sources[0] = 0xB4aB0c94159bc2d8C133946E7241368fc2F2a010;
-    IAaveOracle(AAVE_ORACLE).setAssetSources(assets, sources);
+    sources[0] = address(oracle);
+    AAVE_ORACLE.setAssetSources(assets, sources);
     vm.stopPrank();
 
     // Supply some of the new asset to pool
@@ -160,8 +159,7 @@ contract Generic4626WrapperTest is BaseTokenWrapperTest {
     uint256 borrowAmount = 100e18;
     uint256 collateralAmount = 1000e18;
 
-    uint256 userPrivateKey = 0xA11CE;
-    address alice = address(vm.addr(userPrivateKey));
+    (address alice, uint256 userPrivateKey) = makeAddrAndKey('ALICE');
     deal(WETH, alice, collateralAmount);
 
     address debtToken = IPool(pool)
@@ -203,8 +201,7 @@ contract Generic4626WrapperTest is BaseTokenWrapperTest {
     uint256 borrowAmount = 0;
     uint256 collateralAmount = 1000e18;
 
-    uint256 userPrivateKey = 0xA11CE;
-    address alice = address(vm.addr(userPrivateKey));
+    (address alice, uint256 userPrivateKey) = makeAddrAndKey('ALICE');
     deal(WETH, alice, collateralAmount);
 
     address debtToken = IPool(pool)
