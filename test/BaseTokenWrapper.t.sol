@@ -54,6 +54,7 @@ abstract contract BaseTokenWrapperTest is Test {
 
   function testSupplyToken() public {
     IERC20 tokenIn = IERC20(tokenWrapper.TOKEN_IN());
+    IERC20 tokenOut = IERC20(tokenWrapper.TOKEN_OUT());
     assertEq(
       tokenIn.balanceOf(ALICE),
       0,
@@ -92,10 +93,17 @@ abstract contract BaseTokenWrapperTest is Test {
       1,
       'Unexpected ending aToken balance'
     );
+
+    assertEq(
+      tokenOut.allowance(address(tokenWrapper), pool),
+      0,
+      'Unexpected TOKEN_OUT allowance'
+    );
   }
 
   function testSupplyTokenToOther() public {
     IERC20 tokenIn = IERC20(tokenWrapper.TOKEN_IN());
+    IERC20 tokenOut = IERC20(tokenWrapper.TOKEN_OUT());
     assertEq(
       tokenIn.balanceOf(ALICE),
       0,
@@ -138,10 +146,17 @@ abstract contract BaseTokenWrapperTest is Test {
       1,
       'Unexpected ending aToken balance'
     );
+
+    assertEq(
+      tokenOut.allowance(address(tokenWrapper), pool),
+      0,
+      'Unexpected TOKEN_OUT allowance'
+    );
   }
 
   function testSupplyTokenWithPermit() public {
     IERC20 tokenIn = IERC20(tokenWrapper.TOKEN_IN());
+    IERC20 tokenOut = IERC20(tokenWrapper.TOKEN_OUT());
     assertEq(
       tokenIn.balanceOf(ALICE),
       0,
@@ -206,6 +221,12 @@ abstract contract BaseTokenWrapperTest is Test {
         1,
         'Unexpected ending aToken balance'
       );
+
+      assertEq(
+        tokenOut.allowance(address(tokenWrapper), pool),
+        0,
+        'Unexpected TOKEN_OUT allowance'
+      );
     } else {
       vm.startPrank(ALICE);
       vm.expectRevert();
@@ -221,6 +242,7 @@ abstract contract BaseTokenWrapperTest is Test {
 
   function testPermitGriefingSupplyTokenWithPermit() public {
     IERC20 tokenIn = IERC20(tokenWrapper.TOKEN_IN());
+    IERC20 tokenOut = IERC20(tokenWrapper.TOKEN_OUT());
     assertEq(
       tokenIn.balanceOf(ALICE),
       0,
@@ -296,6 +318,12 @@ abstract contract BaseTokenWrapperTest is Test {
         1,
         'Unexpected ending aToken balance'
       );
+
+    assertEq(
+      tokenOut.allowance(address(tokenWrapper), pool),
+      0,
+      'Unexpected TOKEN_OUT allowance'
+    );
     } else {
       vm.startPrank(ALICE);
       vm.expectRevert();

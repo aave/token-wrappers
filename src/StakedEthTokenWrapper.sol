@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity ^0.8.10;
 
+import {SafeERC20} from 'aave-v3-core/contracts/dependencies/openzeppelin/contracts/SafeERC20.sol';
 import {IERC20} from 'aave-v3-core/contracts/dependencies/openzeppelin/contracts/IERC20.sol';
 import {IWstETH} from './interfaces/IWstETH.sol';
 import {BaseTokenWrapper} from './BaseTokenWrapper.sol';
@@ -24,7 +25,7 @@ contract StakedEthTokenWrapper is BaseTokenWrapper {
     address pool,
     address owner
   ) BaseTokenWrapper(tokenIn, tokenOut, pool, owner) {
-    IERC20(tokenIn).approve(tokenOut, type(uint256).max);
+    // Intentionally left blank
   }
 
   /// @inheritdoc BaseTokenWrapper
@@ -60,7 +61,10 @@ contract StakedEthTokenWrapper is BaseTokenWrapper {
 
   /// @inheritdoc BaseTokenWrapper
   function _wrapTokenIn(uint256 amount) internal override returns (uint256) {
-    return IWstETH(TOKEN_OUT).wrap(amount);
+    SafeERC20.safeApprove(IERC20(TOKEN_IN), TOKEN_OUT, amount);
+    uint256 wrappedAmount = IWstETH(TOKEN_OUT).wrap(amount);
+    SafeERC20.safeApprove(IERC20(TOKEN_IN), TOKEN_OUT, 0);
+    return wrappedAmount;
   }
 
   /// @inheritdoc BaseTokenWrapper

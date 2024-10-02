@@ -46,16 +46,6 @@ contract SavingUsdsTokenWrapperTest is BaseTokenWrapperTest {
     assertEq(tempTokenWrapper.TOKEN_OUT(), SUSDS, 'Unexpected TOKEN_OUT');
     assertEq(address(tempTokenWrapper.POOL()), pool, 'Unexpected POOL');
     assertEq(tempTokenWrapper.owner(), OWNER, 'Unexpected owner');
-    assertEq(
-      IERC20(SUSDS).allowance(address(tempTokenWrapper), pool),
-      type(uint256).max,
-      'Unexpected TOKEN_OUT allowance'
-    );
-    assertEq(
-      IERC20(USDS).allowance(address(tempTokenWrapper), SUSDS),
-      type(uint256).max,
-      'Unexpected TOKEN_IN allowance'
-    );
   }
 
   function testBorrow() public {
