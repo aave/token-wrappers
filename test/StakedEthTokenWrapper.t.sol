@@ -5,9 +5,9 @@ import {AaveV2EthereumAssets} from 'aave-address-book/AaveV2Ethereum.sol';
 import {AaveV3Ethereum, AaveV3EthereumAssets} from 'aave-address-book/AaveV3Ethereum.sol';
 import {IERC20} from 'aave-v3-core/contracts/dependencies/openzeppelin/contracts/IERC20.sol';
 import {IPool} from 'aave-v3-core/contracts/interfaces/IPool.sol';
+import {ICreditDelegationToken} from 'aave-v3-core/contracts/interfaces/ICreditDelegationToken.sol';
 import {BaseTokenWrapperTest} from './BaseTokenWrapper.t.sol';
 import {StakedEthTokenWrapper} from '../src/StakedEthTokenWrapper.sol';
-import {ICreditDelegationToken} from '../src/interfaces/ICreditDelegationToken.sol';
 
 contract StakedEthTokenWrapperTest is BaseTokenWrapperTest {
   address constant STETH = AaveV2EthereumAssets.stETH_UNDERLYING;

@@ -11,9 +11,9 @@ import {IPoolConfigurator} from 'aave-v3-core/contracts/interfaces/IPoolConfigur
 import {ConfiguratorInputTypes} from 'aave-v3-core/contracts/protocol/libraries/types/ConfiguratorInputTypes.sol';
 import {IAToken} from 'aave-v3-core/contracts/interfaces/IAToken.sol';
 import {IERC20} from 'aave-v3-core/contracts/dependencies/openzeppelin/contracts/IERC20.sol';
-import {Generic4626Wrapper} from '../src/Generic4626Wrapper.sol';
-import {ICreditDelegationToken} from '../src/interfaces/ICreditDelegationToken.sol';
-import {IBaseTokenWrapper} from '../src/interfaces/IBaseTokenWrapper.sol';
+import {ICreditDelegationToken} from 'aave-v3-core/contracts/interfaces/ICreditDelegationToken.sol';
+import {Generic4626Wrapper} from 'src/Generic4626Wrapper.sol';
+import {IBaseTokenWrapper} from 'src/interfaces/IBaseTokenWrapper.sol';
 import {MockERC4626} from './mocks/MockERC4626.sol';
 import {MockERC20} from './mocks/MockERC20.sol';
 import {SigUtils} from './utils/SigUtils.sol';
