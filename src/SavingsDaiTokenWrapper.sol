@@ -42,6 +42,15 @@ contract SavingsDaiTokenWrapper is BaseTokenWrapper {
     return ISavingsDai(TOKEN_OUT).previewRedeem(amount);
   }
 
+  function supplyTokenWithPermit(
+    uint256 amount,
+    address onBehalfOf,
+    uint16 referralCode,
+    PermitSignature calldata signature
+  ) external pure override returns (uint256) {
+    revert('INVALID_ACTION');
+  }
+
   /// @inheritdoc BaseTokenWrapper
   function borrowToken(
     uint256 amount,
@@ -62,7 +71,10 @@ contract SavingsDaiTokenWrapper is BaseTokenWrapper {
   /// @inheritdoc BaseTokenWrapper
   function _wrapTokenIn(uint256 amount) internal override returns (uint256) {
     SafeERC20.safeApprove(IERC20(TOKEN_IN), TOKEN_OUT, amount);
-    uint256 wrappedAmount = ISavingsDai(TOKEN_OUT).deposit(amount, address(this));
+    uint256 wrappedAmount = ISavingsDai(TOKEN_OUT).deposit(
+      amount,
+      address(this)
+    );
     SafeERC20.safeApprove(IERC20(TOKEN_IN), TOKEN_OUT, 0);
     return wrappedAmount;
   }

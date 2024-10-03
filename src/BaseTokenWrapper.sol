@@ -28,6 +28,8 @@ abstract contract BaseTokenWrapper is Ownable, IBaseTokenWrapper {
   /// @inheritdoc IBaseTokenWrapper
   IPool public immutable POOL;
 
+  uint256 private constant VARIABLE_INTEREST_RATE_MODE = 2;
+
   /**
    * @dev Constructor
    * @param tokenIn ERC-20 token that will be wrapped in supply operations
@@ -47,7 +49,7 @@ abstract contract BaseTokenWrapper is Ownable, IBaseTokenWrapper {
     uint256 amount,
     address onBehalfOf,
     uint16 referralCode
-  ) external returns (uint256) {
+  ) external virtual returns (uint256) {
     return _supplyToken(amount, onBehalfOf, referralCode);
   }
 
@@ -57,7 +59,7 @@ abstract contract BaseTokenWrapper is Ownable, IBaseTokenWrapper {
     address onBehalfOf,
     uint16 referralCode,
     PermitSignature calldata signature
-  ) external returns (uint256) {
+  ) external virtual returns (uint256) {
     // explicitly left try-catch block blank to protect users from permit griefing
     try
       IERC20WithPermit(TOKEN_IN).permit(
@@ -77,7 +79,7 @@ abstract contract BaseTokenWrapper is Ownable, IBaseTokenWrapper {
   function withdrawToken(
     uint256 amount,
     address to
-  ) external returns (uint256) {
+  ) external virtual returns (uint256) {
     IAToken aTokenOut = IAToken(POOL.getReserveData(TOKEN_OUT).aTokenAddress);
     return _withdrawToken(amount, to, aTokenOut);
   }
@@ -87,7 +89,7 @@ abstract contract BaseTokenWrapper is Ownable, IBaseTokenWrapper {
     uint256 amount,
     address to,
     PermitSignature calldata signature
-  ) external returns (uint256) {
+  ) external virtual returns (uint256) {
     IAToken aTokenOut = IAToken(POOL.getReserveData(TOKEN_OUT).aTokenAddress);
     // explicitly left try-catch block blank to protect users from permit griefing
     try
@@ -224,7 +226,13 @@ abstract contract BaseTokenWrapper is Ownable, IBaseTokenWrapper {
   ) internal {
     require(amount > 0, 'INSUFFICIENT_AMOUNT_TO_BORROW');
     uint256 balanceBeforeBorrow = IERC20(TOKEN_OUT).balanceOf(address(this));
-    POOL.borrow(TOKEN_OUT, amount, 2, referralCode, address(onBehalfOf));
+    POOL.borrow(
+      TOKEN_OUT,
+      amount,
+      VARIABLE_INTEREST_RATE_MODE,
+      referralCode,
+      address(onBehalfOf)
+    );
     uint256 balanceAfterBorrow = IERC20(TOKEN_OUT).balanceOf(address(this));
     uint256 amountIn = _unwrapTokenOut(
       balanceAfterBorrow - balanceBeforeBorrow
