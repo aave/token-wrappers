@@ -29,19 +29,6 @@ contract SavingsDaiTokenWrapper is BaseTokenWrapper {
   }
 
   /// @inheritdoc BaseTokenWrapper
-  function getTokenOutForTokenIn(
-    uint256 amount
-  ) external view override returns (uint256) {
-    return ISavingsDai(TOKEN_OUT).previewDeposit(amount);
-  }
-
-  /// @inheritdoc BaseTokenWrapper
-  function getTokenInForTokenOut(
-    uint256 amount
-  ) external view override returns (uint256) {
-    return ISavingsDai(TOKEN_OUT).previewRedeem(amount);
-  }
-
   function supplyTokenWithPermit(
     uint256 amount,
     address onBehalfOf,
@@ -66,6 +53,20 @@ contract SavingsDaiTokenWrapper is BaseTokenWrapper {
     PermitSignature calldata signature
   ) external pure override {
     revert('INVALID_ACTION');
+  }
+
+  /// @inheritdoc BaseTokenWrapper
+  function getTokenOutForTokenIn(
+    uint256 amount
+  ) external view override returns (uint256) {
+    return ISavingsDai(TOKEN_OUT).previewDeposit(amount);
+  }
+
+  /// @inheritdoc BaseTokenWrapper
+  function getTokenInForTokenOut(
+    uint256 amount
+  ) external view override returns (uint256) {
+    return ISavingsDai(TOKEN_OUT).previewRedeem(amount);
   }
 
   /// @inheritdoc BaseTokenWrapper

@@ -29,20 +29,6 @@ contract StakedEthTokenWrapper is BaseTokenWrapper {
   }
 
   /// @inheritdoc BaseTokenWrapper
-  function getTokenOutForTokenIn(
-    uint256 amount
-  ) external view override returns (uint256) {
-    return IWstETH(TOKEN_OUT).getWstETHByStETH(amount);
-  }
-
-  /// @inheritdoc BaseTokenWrapper
-  function getTokenInForTokenOut(
-    uint256 amount
-  ) external view override returns (uint256) {
-    return IWstETH(TOKEN_OUT).getStETHByWstETH(amount);
-  }
-
-  /// @inheritdoc BaseTokenWrapper
   function borrowToken(
     uint256 amount,
     uint16 referralCode
@@ -57,6 +43,20 @@ contract StakedEthTokenWrapper is BaseTokenWrapper {
     PermitSignature calldata signature
   ) external pure override {
     revert('INVALID_ACTION');
+  }
+
+  /// @inheritdoc BaseTokenWrapper
+  function getTokenOutForTokenIn(
+    uint256 amount
+  ) external view override returns (uint256) {
+    return IWstETH(TOKEN_OUT).getWstETHByStETH(amount);
+  }
+
+  /// @inheritdoc BaseTokenWrapper
+  function getTokenInForTokenOut(
+    uint256 amount
+  ) external view override returns (uint256) {
+    return IWstETH(TOKEN_OUT).getStETHByWstETH(amount);
   }
 
   /// @inheritdoc BaseTokenWrapper
