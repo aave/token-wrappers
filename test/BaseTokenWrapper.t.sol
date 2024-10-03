@@ -3,12 +3,10 @@ pragma solidity ^0.8.10;
 
 import {Test} from 'forge-std/Test.sol';
 import {IERC20} from 'aave-v3-core/contracts/dependencies/openzeppelin/contracts/IERC20.sol';
-import {IPool} from 'aave-v3-core/contracts/interfaces/IPool.sol';
 import {IAToken} from 'aave-v3-core/contracts/interfaces/IAToken.sol';
 import {MintableERC20} from 'aave-v3-core/contracts/mocks/tokens/MintableERC20.sol';
 import {IBaseTokenWrapper} from '../src/interfaces/IBaseTokenWrapper.sol';
 import {BaseTokenWrapper} from '../src/BaseTokenWrapper.sol';
-import {ICreditDelegationToken} from '../src/interfaces/ICreditDelegationToken.sol';
 
 interface IERC2612 {
   function nonces(address owner) external view returns (uint256);
@@ -319,11 +317,11 @@ abstract contract BaseTokenWrapperTest is Test {
         'Unexpected ending aToken balance'
       );
 
-    assertEq(
-      tokenOut.allowance(address(tokenWrapper), pool),
-      0,
-      'Unexpected TOKEN_OUT allowance'
-    );
+      assertEq(
+        tokenOut.allowance(address(tokenWrapper), pool),
+        0,
+        'Unexpected TOKEN_OUT allowance'
+      );
     } else {
       vm.startPrank(ALICE);
       vm.expectRevert();
@@ -401,9 +399,6 @@ abstract contract BaseTokenWrapperTest is Test {
       tokenIn.balanceOf(ALICE),
       0,
       'Unexpected starting tokenIn balance'
-    );
-    uint256 estimateFinalBalance = tokenWrapper.getTokenInForTokenOut(
-      aTokenBalance
     );
 
     vm.startPrank(ALICE);
@@ -720,11 +715,7 @@ abstract contract BaseTokenWrapperTest is Test {
 
     vm.startPrank(ALICE);
     tokenIn.approve(address(tokenWrapper), amountScaled);
-    uint256 suppliedAmount = tokenWrapper.supplyToken(
-      amountScaled,
-      referee,
-      REFERRAL_CODE
-    );
+    tokenWrapper.supplyToken(amountScaled, referee, REFERRAL_CODE);
     vm.stopPrank();
 
     assertEq(tokenIn.balanceOf(ALICE), 0, 'Unexpected ending tokenIn balance');
@@ -746,9 +737,6 @@ abstract contract BaseTokenWrapperTest is Test {
       tokenIn.balanceOf(ALICE),
       0,
       'Unexpected starting tokenIn balance'
-    );
-    uint256 estimateFinalBalance = tokenWrapper.getTokenInForTokenOut(
-      aTokenBalance
     );
     vm.startPrank(ALICE);
     IAToken(aTokenOut).approve(address(tokenWrapper), aTokenBalance);
