@@ -30,27 +30,24 @@ contract SavingsDaiTokenWrapper is BaseTokenWrapper {
 
   /// @inheritdoc BaseTokenWrapper
   function supplyTokenWithPermit(
-    uint256 amount,
-    address onBehalfOf,
-    uint16 referralCode,
-    PermitSignature calldata signature
+    uint256,
+    address,
+    uint16,
+    PermitSignature calldata
   ) external pure override returns (uint256) {
     revert('INVALID_ACTION');
   }
 
   /// @inheritdoc BaseTokenWrapper
-  function borrowToken(
-    uint256 amount,
-    uint16 referralCode
-  ) external pure override {
+  function borrowToken(uint256, uint16) external pure override {
     revert('INVALID_ACTION');
   }
 
   /// @inheritdoc BaseTokenWrapper
   function borrowTokenWithPermit(
-    uint256 amount,
-    uint16 referralCode,
-    PermitSignature calldata signature
+    uint256,
+    uint16,
+    PermitSignature calldata
   ) external pure override {
     revert('INVALID_ACTION');
   }
