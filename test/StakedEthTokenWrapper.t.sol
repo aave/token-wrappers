@@ -4,10 +4,10 @@ pragma solidity ^0.8.10;
 import {AaveV2EthereumAssets} from 'aave-address-book/AaveV2Ethereum.sol';
 import {AaveV3Ethereum, AaveV3EthereumAssets} from 'aave-address-book/AaveV3Ethereum.sol';
 import {IERC20} from 'aave-v3-core/contracts/dependencies/openzeppelin/contracts/IERC20.sol';
-import {IPool} from 'aave-v3-core/contracts/interfaces/IPool.sol';
-import {ICreditDelegationToken} from 'aave-v3-core/contracts/interfaces/ICreditDelegationToken.sol';
+
 import {BaseTokenWrapperTest} from './BaseTokenWrapper.t.sol';
-import {StakedEthTokenWrapper} from '../src/StakedEthTokenWrapper.sol';
+
+import {StakedEthTokenWrapper} from 'src/StakedEthTokenWrapper.sol';
 
 contract StakedEthTokenWrapperTest is BaseTokenWrapperTest {
   address constant STETH = AaveV2EthereumAssets.stETH_UNDERLYING;
@@ -22,6 +22,8 @@ contract StakedEthTokenWrapperTest is BaseTokenWrapperTest {
     aTokenOut = AWSTETH;
     tokenInDecimals = 18;
     permitSupported = true;
+    collateralAsset = AaveV3EthereumAssets.WETH_UNDERLYING;
+    borrowSupported = false;
   }
 
   function testConstructor() public override {
@@ -38,32 +40,10 @@ contract StakedEthTokenWrapperTest is BaseTokenWrapperTest {
   }
 
   function _dealTokenIn(address user, uint256 amount) internal override {
-    vm.deal(user, amount);
-    vm.prank(user);
-    (bool success, ) = STETH.call{value: amount}('');
-    require(success);
-  }
-
-  function testBorrowNotPermitted() public {
-    uint256 collateralAmount = 1000e18;
-    uint256 borrowAmount = 100e18;
-    address debtToken = IPool(pool)
-      .getReserveData(tokenWrapper.TOKEN_OUT())
-      .variableDebtTokenAddress;
-
-    address alice = makeAddr('ALICE');
-    deal(WETH, alice, collateralAmount);
-    vm.startPrank(alice);
-
-    IERC20(WETH).approve(address(pool), collateralAmount);
-    IPool(pool).supply(WETH, collateralAmount, alice, 0);
-
-    ICreditDelegationToken(debtToken).approveDelegation(
-      address(tokenWrapper),
-      borrowAmount
-    );
-    vm.expectRevert('INVALID_ACTION');
-    tokenWrapper.borrowToken(borrowAmount, 0);
-    vm.stopPrank();
+    // Custom deal function for stETH
+    deal(address(this), amount);
+    (bool success, ) = payable(tokenWrapper.TOKEN_IN()).call{value: amount}('');
+    require(success, 'DEAL_FAILURE');
+    IERC20(tokenWrapper.TOKEN_IN()).transfer(user, amount);
   }
 }
