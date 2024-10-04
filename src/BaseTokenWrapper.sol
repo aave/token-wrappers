@@ -117,23 +117,22 @@ abstract contract BaseTokenWrapper is Ownable, IBaseTokenWrapper {
     uint16 referralCode,
     PermitSignature calldata signature
   ) external virtual {
-    if (signature.deadline != 0) {
-      address debtToken = POOL
-        .getReserveData(TOKEN_OUT)
-        .variableDebtTokenAddress;
-      // explicitly left try-catch block blank to protect users from permit griefing
-      try
-        ICreditDelegationToken(debtToken).delegationWithSig(
-          msg.sender,
-          address(this),
-          amount,
-          signature.deadline,
-          signature.v,
-          signature.r,
-          signature.s
-        )
-      {} catch {}
+    if (signature.deadline < block.timestamp) {
+      revert('PERMIT_EXPIRED');
     }
+    address debtToken = POOL.getReserveData(TOKEN_OUT).variableDebtTokenAddress;
+    // explicitly left try-catch block blank to protect users from permit griefing
+    try
+      ICreditDelegationToken(debtToken).delegationWithSig(
+        msg.sender,
+        address(this),
+        amount,
+        signature.deadline,
+        signature.v,
+        signature.r,
+        signature.s
+      )
+    {} catch {}
     _borrowToken(amount, msg.sender, referralCode);
   }
 

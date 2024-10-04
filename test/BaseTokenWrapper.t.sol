@@ -792,6 +792,35 @@ abstract contract BaseTokenWrapperTest is Test {
     vm.stopPrank();
   }
 
+  function testBorrowTokenZeroAmount() public {
+    uint256 collateralAmount = 1000e18;
+    uint256 borrowAmount = 0;
+    address debtToken = IPool(pool)
+      .getReserveData(tokenWrapper.TOKEN_OUT())
+      .variableDebtTokenAddress;
+
+    address alice = makeAddr('ALICE');
+    deal(collateralAsset, alice, collateralAmount);
+
+    vm.startPrank(alice);
+
+    IERC20(collateralAsset).approve(address(pool), collateralAmount);
+    IPool(pool).supply(collateralAsset, collateralAmount, alice, 0);
+
+    ICreditDelegationToken(debtToken).approveDelegation(
+      address(tokenWrapper),
+      borrowAmount
+    );
+
+    if (borrowSupported) {
+      vm.expectRevert('INSUFFICIENT_AMOUNT_TO_BORROW');
+      tokenWrapper.borrowToken(borrowAmount, 0);
+    } else {
+      vm.expectRevert();
+      tokenWrapper.borrowToken(borrowAmount, 0);
+    }
+  }
+
   function testBorrowTokenWithPermit() public {
     uint256 borrowAmount = 100e18;
     uint256 collateralAmount = 1000e18;
@@ -871,6 +900,46 @@ abstract contract BaseTokenWrapperTest is Test {
       .PermitSignature({deadline: deadline, v: v, r: r, s: s});
     if (borrowSupported) {
       vm.expectRevert('INSUFFICIENT_AMOUNT_TO_BORROW');
+      tokenWrapper.borrowTokenWithPermit(borrowAmount, 1, signature);
+    } else {
+      vm.expectRevert();
+      tokenWrapper.borrowTokenWithPermit(borrowAmount, 1, signature);
+    }
+  }
+
+  function testBorrowTokenWithPermitDeadlineExpired() public {
+    uint256 borrowAmount = 100e18;
+    uint256 collateralAmount = 1000e18;
+
+    (address alice, uint256 userPrivateKey) = makeAddrAndKey('ALICE');
+    deal(collateralAsset, alice, collateralAmount);
+
+    address debtToken = IPool(pool)
+      .getReserveData(tokenWrapper.TOKEN_OUT())
+      .variableDebtTokenAddress;
+
+    vm.startPrank(alice);
+
+    IERC20(collateralAsset).approve(address(pool), collateralAmount);
+
+    IPool(pool).supply(collateralAsset, collateralAmount, alice, 0);
+
+    uint256 deadline = block.timestamp - 1;
+    uint256 nonce = IAToken(debtToken).nonces(alice);
+
+    (uint8 v, bytes32 r, bytes32 s) = _signCreditDelegation(
+      userPrivateKey,
+      address(tokenWrapper),
+      borrowAmount,
+      nonce,
+      deadline,
+      debtToken
+    );
+    IBaseTokenWrapper.PermitSignature memory signature = IBaseTokenWrapper
+      .PermitSignature({deadline: deadline, v: v, r: r, s: s});
+
+    if (borrowSupported) {
+      vm.expectRevert('PERMIT_EXPIRED');
       tokenWrapper.borrowTokenWithPermit(borrowAmount, 1, signature);
     } else {
       vm.expectRevert();
