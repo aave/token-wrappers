@@ -56,7 +56,7 @@ abstract contract BaseTokenWrapperTest is Test {
 
   function testConstructor() public virtual;
 
-  function testSupplyToken2() public {
+  function testSupplyToken() public {
     IERC20 tokenIn = IERC20(tokenWrapper.TOKEN_IN());
     IERC20 tokenOut = IERC20(tokenWrapper.TOKEN_OUT());
     assertEq(
@@ -359,7 +359,7 @@ abstract contract BaseTokenWrapperTest is Test {
   }
 
   function testWithdrawToken() public {
-    testSupplyToken2();
+    testSupplyToken();
     IERC20 tokenIn = IERC20(tokenWrapper.TOKEN_IN());
 
     uint256 aTokenBalance = IAToken(aTokenOut).balanceOf(ALICE);
@@ -396,7 +396,7 @@ abstract contract BaseTokenWrapperTest is Test {
   }
 
   function testWithdrawTokenInsufficientBalance() public {
-    testSupplyToken2();
+    testSupplyToken();
     IERC20 tokenIn = IERC20(tokenWrapper.TOKEN_IN());
 
     uint256 aTokenBalance = IAToken(aTokenOut).balanceOf(ALICE);
@@ -415,7 +415,7 @@ abstract contract BaseTokenWrapperTest is Test {
   }
 
   function testWithdrawTokenMaxValue() public {
-    testSupplyToken2();
+    testSupplyToken();
     IERC20 tokenIn = IERC20(tokenWrapper.TOKEN_IN());
 
     uint256 aTokenBalance = IAToken(aTokenOut).balanceOf(ALICE);
@@ -456,7 +456,7 @@ abstract contract BaseTokenWrapperTest is Test {
   }
 
   function testWithdrawTokenToOther() public {
-    testSupplyToken2();
+    testSupplyToken();
     IERC20 tokenIn = IERC20(tokenWrapper.TOKEN_IN());
 
     uint256 aTokenBalance = IAToken(aTokenOut).balanceOf(ALICE);
@@ -495,7 +495,7 @@ abstract contract BaseTokenWrapperTest is Test {
   }
 
   function testWithdrawTokenWithPermit() public {
-    testSupplyToken2();
+    testSupplyToken();
     IERC20 tokenIn = IERC20(tokenWrapper.TOKEN_IN());
 
     uint256 aTokenBalance = IAToken(aTokenOut).balanceOf(ALICE);
@@ -557,7 +557,7 @@ abstract contract BaseTokenWrapperTest is Test {
   }
 
   function testPermitGriefingWithdrawTokenWithPermit() public {
-    testSupplyToken2();
+    testSupplyToken();
     IERC20 tokenIn = IERC20(tokenWrapper.TOKEN_IN());
 
     uint256 aTokenBalance = IAToken(aTokenOut).balanceOf(ALICE);
@@ -734,7 +734,7 @@ abstract contract BaseTokenWrapperTest is Test {
   }
 
   function testFuzzWithdrawToken(uint256 aTokenBalance) public {
-    testSupplyToken2();
+    testSupplyToken();
     IERC20 tokenIn = IERC20(tokenWrapper.TOKEN_IN());
     uint256 aTokenBalanceOriginal = IAToken(aTokenOut).balanceOf(ALICE);
     aTokenBalance = bound(aTokenBalance, 1000, aTokenBalanceOriginal - 1); //using 1000 as min to ignore dust amounts
