@@ -974,6 +974,58 @@ abstract contract BaseTokenWrapperTest is Test {
     }
   }
 
+  function testBorrowTokenInsufficientCollateral() public {
+    uint256 borrowAmount = 100e18;
+
+    address debtToken = IPool(pool)
+      .getReserveData(tokenWrapper.TOKEN_OUT())
+      .variableDebtTokenAddress;
+
+    vm.startPrank(ALICE);
+
+    ICreditDelegationToken(debtToken).approveDelegation(
+      address(tokenWrapper),
+      borrowAmount
+    );
+
+    if (borrowSupported) {
+      vm.expectRevert();
+      tokenWrapper.borrowToken(borrowAmount, 0);
+    } else {
+      vm.expectRevert();
+      tokenWrapper.borrowToken(borrowAmount, 0);
+    }
+  }
+
+  function testBorrowTokenInsufficientDelegation() public {
+    uint256 borrowAmount = 100e18;
+    uint256 collateralAmount = 1000e18;
+
+    address debtToken = IPool(pool)
+      .getReserveData(tokenWrapper.TOKEN_OUT())
+      .variableDebtTokenAddress;
+
+    deal(collateralAsset, ALICE, collateralAmount);
+
+    vm.startPrank(ALICE);
+
+    IERC20(collateralAsset).approve(address(pool), collateralAmount);
+    IPool(pool).supply(collateralAsset, collateralAmount, ALICE, 0);
+
+    ICreditDelegationToken(debtToken).approveDelegation(
+      address(tokenWrapper),
+      borrowAmount - 1
+    );
+
+    if (borrowSupported) {
+      vm.expectRevert();
+      tokenWrapper.borrowToken(borrowAmount, 0);
+    } else {
+      vm.expectRevert();
+      tokenWrapper.borrowToken(borrowAmount, 0);
+    }
+  }
+
   function testFuzzBorrowToken(uint256 borrowAmount) public {
     borrowAmount = bound(borrowAmount, 1, MAX_DEAL_AMOUNT);
     borrowAmount *= 10 ** tokenInDecimals;
