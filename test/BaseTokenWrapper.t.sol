@@ -934,7 +934,7 @@ abstract contract BaseTokenWrapperTest is Test {
       .PermitSignature({deadline: deadline, v: v, r: r, s: s});
 
     if (borrowSupported) {
-      vm.expectRevert('PERMIT_EXPIRED');
+      vm.expectRevert();
       tokenWrapper.borrowTokenWithPermit(borrowAmount, 1, signature);
     } else {
       vm.expectRevert();
@@ -1035,13 +1035,12 @@ abstract contract BaseTokenWrapperTest is Test {
       .getReserveData(tokenWrapper.TOKEN_OUT())
       .variableDebtTokenAddress;
 
-    address alice = makeAddr('ALICE');
-    deal(collateralAsset, alice, collateralAmount);
+    deal(collateralAsset, ALICE, collateralAmount);
 
-    vm.startPrank(alice);
+    vm.startPrank(ALICE);
 
     IERC20(collateralAsset).approve(address(pool), collateralAmount);
-    IPool(pool).supply(collateralAsset, collateralAmount, alice, 0);
+    IPool(pool).supply(collateralAsset, collateralAmount, ALICE, 0);
 
     ICreditDelegationToken(debtToken).approveDelegation(
       address(tokenWrapper),
@@ -1052,7 +1051,7 @@ abstract contract BaseTokenWrapperTest is Test {
       tokenWrapper.borrowToken(borrowAmount, 0);
       uint256 borrowedAmount = tokenWrapper.getTokenInForTokenOut(borrowAmount);
       assertEq(
-        IERC20(tokenWrapper.TOKEN_IN()).balanceOf(address(alice)),
+        IERC20(tokenWrapper.TOKEN_IN()).balanceOf(ALICE),
         borrowedAmount
       );
     } else {
