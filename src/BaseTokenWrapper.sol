@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity ^0.8.10;
+
 import {Ownable} from 'aave-v3-core/contracts/dependencies/openzeppelin/contracts/Ownable.sol';
 import {IERC20} from 'aave-v3-core/contracts/dependencies/openzeppelin/contracts/IERC20.sol';
 import {IERC20WithPermit} from 'aave-v3-core/contracts/interfaces/IERC20WithPermit.sol';
+import {SafeERC20} from 'aave-v3-core/contracts/dependencies/openzeppelin/contracts/SafeERC20.sol';
 import {GPv2SafeERC20} from 'aave-v3-core/contracts/dependencies/gnosis/contracts/GPv2SafeERC20.sol';
 import {IPool} from 'aave-v3-core/contracts/interfaces/IPool.sol';
 import {IAToken} from 'aave-v3-core/contracts/interfaces/IAToken.sol';
+import {ICreditDelegationToken} from 'aave-v3-core/contracts/interfaces/ICreditDelegationToken.sol';
 import {IBaseTokenWrapper} from './interfaces/IBaseTokenWrapper.sol';
 
 /**
@@ -25,13 +28,7 @@ abstract contract BaseTokenWrapper is Ownable, IBaseTokenWrapper {
   /// @inheritdoc IBaseTokenWrapper
   IPool public immutable POOL;
 
-  /**
-   * @dev Throws if called by any token wrapper borrow function not permitted.
-   */
-  modifier actionNotPermitted() {
-    require(false, 'INVALID_ACTION');
-    _;
-  }
+  uint256 private constant VARIABLE_INTEREST_RATE_MODE = 2;
 
   /**
    * @dev Constructor
@@ -45,7 +42,6 @@ abstract contract BaseTokenWrapper is Ownable, IBaseTokenWrapper {
     TOKEN_OUT = tokenOut;
     POOL = IPool(pool);
     transferOwnership(owner);
-    IERC20(tokenOut).approve(pool, type(uint256).max);
   }
 
   /// @inheritdoc IBaseTokenWrapper
@@ -53,7 +49,7 @@ abstract contract BaseTokenWrapper is Ownable, IBaseTokenWrapper {
     uint256 amount,
     address onBehalfOf,
     uint16 referralCode
-  ) external returns (uint256) {
+  ) external virtual returns (uint256) {
     return _supplyToken(amount, onBehalfOf, referralCode);
   }
 
@@ -63,7 +59,7 @@ abstract contract BaseTokenWrapper is Ownable, IBaseTokenWrapper {
     address onBehalfOf,
     uint16 referralCode,
     PermitSignature calldata signature
-  ) external returns (uint256) {
+  ) external virtual returns (uint256) {
     // explicitly left try-catch block blank to protect users from permit griefing
     try
       IERC20WithPermit(TOKEN_IN).permit(
@@ -83,7 +79,7 @@ abstract contract BaseTokenWrapper is Ownable, IBaseTokenWrapper {
   function withdrawToken(
     uint256 amount,
     address to
-  ) external returns (uint256) {
+  ) external virtual returns (uint256) {
     IAToken aTokenOut = IAToken(POOL.getReserveData(TOKEN_OUT).aTokenAddress);
     return _withdrawToken(amount, to, aTokenOut);
   }
@@ -93,7 +89,7 @@ abstract contract BaseTokenWrapper is Ownable, IBaseTokenWrapper {
     uint256 amount,
     address to,
     PermitSignature calldata signature
-  ) external returns (uint256) {
+  ) external virtual returns (uint256) {
     IAToken aTokenOut = IAToken(POOL.getReserveData(TOKEN_OUT).aTokenAddress);
     // explicitly left try-catch block blank to protect users from permit griefing
     try
@@ -111,22 +107,35 @@ abstract contract BaseTokenWrapper is Ownable, IBaseTokenWrapper {
   }
 
   /// @inheritdoc IBaseTokenWrapper
-  function borrowToken(
-    uint256 amount,
-    address to,
-    uint16 referralCode
-  ) external virtual {}
+  function borrowToken(uint256 amount, uint16 referralCode) external virtual {
+    _borrowToken(amount, msg.sender, referralCode);
+  }
 
   /// @inheritdoc IBaseTokenWrapper
   function borrowTokenWithPermit(
     uint256 amount,
-    address to,
     uint16 referralCode,
-    uint256 deadline,
-    uint8 permitV,
-    bytes32 permitR,
-    bytes32 permitS
-  ) external virtual {}
+    PermitSignature calldata signature
+  ) external virtual {
+    if (signature.deadline != 0) {
+      address debtToken = POOL
+        .getReserveData(TOKEN_OUT)
+        .variableDebtTokenAddress;
+      // explicitly left try-catch block blank to protect users from permit griefing
+      try
+        ICreditDelegationToken(debtToken).delegationWithSig(
+          msg.sender,
+          address(this),
+          amount,
+          signature.deadline,
+          signature.v,
+          signature.r,
+          signature.s
+        )
+      {} catch {}
+    }
+    _borrowToken(amount, msg.sender, referralCode);
+  }
 
   /// @inheritdoc IBaseTokenWrapper
   function rescueTokens(
@@ -169,7 +178,9 @@ abstract contract BaseTokenWrapper is Ownable, IBaseTokenWrapper {
     IERC20(TOKEN_IN).safeTransferFrom(msg.sender, address(this), amount);
     uint256 amountWrapped = _wrapTokenIn(amount);
     require(amountWrapped > 0, 'INSUFFICIENT_WRAPPED_TOKEN_RECEIVED');
+    SafeERC20.safeApprove(IERC20(TOKEN_OUT), address(POOL), amountWrapped);
     POOL.supply(TOKEN_OUT, amountWrapped, onBehalfOf, referralCode);
+    SafeERC20.safeApprove(IERC20(TOKEN_OUT), address(POOL), 0);
     return amountWrapped;
   }
 
@@ -200,6 +211,33 @@ abstract contract BaseTokenWrapper is Ownable, IBaseTokenWrapper {
     require(amountUnwrapped > 0, 'INSUFFICIENT_UNWRAPPED_TOKEN_RECEIVED');
     IERC20(TOKEN_IN).safeTransfer(to, amountUnwrapped);
     return amountUnwrapped;
+  }
+
+  /**
+   * @notice Helper to borrow token from the Pool and unwraps it, sending to the recipient
+   * @param amount The amount of token to borrow
+   * @param onBehalfOf The address that will receive the unwrapped token
+   * @param referralCode Code used to register the integrator originating the operation, for potential rewards
+   */
+  function _borrowToken(
+    uint256 amount,
+    address onBehalfOf,
+    uint16 referralCode
+  ) internal {
+    require(amount > 0, 'INSUFFICIENT_AMOUNT_TO_BORROW');
+    uint256 balanceBeforeBorrow = IERC20(TOKEN_OUT).balanceOf(address(this));
+    POOL.borrow(
+      TOKEN_OUT,
+      amount,
+      VARIABLE_INTEREST_RATE_MODE,
+      referralCode,
+      address(onBehalfOf)
+    );
+    uint256 balanceAfterBorrow = IERC20(TOKEN_OUT).balanceOf(address(this));
+    uint256 amountIn = _unwrapTokenOut(
+      balanceAfterBorrow - balanceBeforeBorrow
+    );
+    IERC20(TOKEN_IN).transfer(onBehalfOf, amountIn);
   }
 
   /**

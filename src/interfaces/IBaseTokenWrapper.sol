@@ -64,33 +64,20 @@ interface IBaseTokenWrapper {
   /**
    * @notice Borrows token from the Pool and unwraps it, sending to the recipient
    * @param amount The amount of token to borrow
-   * @param to The address that will receive the unwrapped token
    * @param referralCode Code used to register the integrator originating the operation, for potential rewards
    */
-  function borrowToken(
-    uint256 amount,
-    address to,
-    uint16 referralCode
-  ) external;
+  function borrowToken(uint256 amount, uint16 referralCode) external;
 
   /**
    * @notice Borrows token from the Pool, unwraps it, and sends it to the recipient using EIP-2612 permit
    * @param amount The amount of token to borrow
-   * @param to The address that will receive the unwrapped token
    * @param referralCode Code used to register the integrator originating the operation, for potential rewards
-   * @param deadline The deadline timestamp for the permit signature to be valid
-   * @param permitV The V parameter of the permit signature
-   * @param permitR The R parameter of the permit signature
-   * @param permitS The S parameter of the permit signature
+   * @param signature The EIP-712 signature data used for permit
    */
   function borrowTokenWithPermit(
     uint256 amount,
-    address to,
     uint16 referralCode,
-    uint256 deadline,
-    uint8 permitV,
-    bytes32 permitR,
-    bytes32 permitS
+    PermitSignature calldata signature
   ) external;
 
   /**
