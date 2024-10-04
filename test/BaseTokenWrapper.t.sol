@@ -758,7 +758,7 @@ abstract contract BaseTokenWrapperTest is Test {
     assertGt(withdrawnAmount, 0, 'Unexpected withdraw return/balance mismatch');
   }
 
-  function testBorrow() public {
+  function testBorrowToken() public {
     uint256 collateralAmount = 1000e18;
     uint256 borrowAmount = 100e18;
     address debtToken = IPool(pool)
@@ -876,6 +876,42 @@ abstract contract BaseTokenWrapperTest is Test {
       vm.expectRevert();
       tokenWrapper.borrowTokenWithPermit(borrowAmount, 1, signature);
     }
+  }
+
+  function testFuzzBorrowToken(uint256 borrowAmount) public {
+    borrowAmount = bound(borrowAmount, 1, MAX_DEAL_AMOUNT);
+    borrowAmount *= 10 ** tokenInDecimals;
+    uint256 collateralAmount = borrowAmount * 10;
+
+    address debtToken = IPool(pool)
+      .getReserveData(tokenWrapper.TOKEN_OUT())
+      .variableDebtTokenAddress;
+
+    address alice = makeAddr('ALICE');
+    deal(collateralAsset, alice, collateralAmount);
+
+    vm.startPrank(alice);
+
+    IERC20(collateralAsset).approve(address(pool), collateralAmount);
+    IPool(pool).supply(collateralAsset, collateralAmount, alice, 0);
+
+    ICreditDelegationToken(debtToken).approveDelegation(
+      address(tokenWrapper),
+      borrowAmount
+    );
+
+    if (borrowSupported) {
+      tokenWrapper.borrowToken(borrowAmount, 0);
+      uint256 borrowedAmount = tokenWrapper.getTokenInForTokenOut(borrowAmount);
+      assertEq(
+        IERC20(tokenWrapper.TOKEN_IN()).balanceOf(address(alice)),
+        borrowedAmount
+      );
+    } else {
+      vm.expectRevert();
+      tokenWrapper.borrowToken(borrowAmount, 0);
+    }
+    vm.stopPrank();
   }
 
   function _signCreditDelegation(
