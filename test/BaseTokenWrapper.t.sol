@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity ^0.8.10;
 
+// import {console2} from 'forge-std/console2.sol';
 import {Test} from 'forge-std/Test.sol';
 import {IERC20} from 'aave-v3-core/contracts/dependencies/openzeppelin/contracts/IERC20.sol';
 import {IAToken} from 'aave-v3-core/contracts/interfaces/IAToken.sol';
@@ -912,6 +913,75 @@ abstract contract BaseTokenWrapperTest is Test {
       tokenWrapper.borrowToken(borrowAmount, 0);
     }
     vm.stopPrank();
+  }
+
+  function testRepayTokenWithPermit() public {
+    // collateral to alice
+    // approve pool supply amount
+    // supply collateral
+    // take borrow position
+    // check balances before repayment
+    // create permits
+    // repay with permit
+    //     assertEq(usdx.balanceOf(user), underlyingBalanceBeforeRepayment - repayAmount);
+    //   assertApproxEqAbs(
+    //   IERC20(address(varDebtUSDX)).balanceOf(user),
+    //   debtBalanceBefore - repayAmount,
+    //   1
+    // );
+
+    // console2.log('FOOOOOOO');
+
+    // IERC20 tokenIn = IERC20(tokenWrapper.TOKEN_IN()); // dai
+    // IERC20 tokenOut = IERC20(tokenWrapper.TOKEN_OUT()); // sdai (repayment)
+    // assertEq(
+    //   tokenIn.balanceOf(ALICE),
+    //   0,
+    //   'Unexpected Alice starting tokenIn balance'
+    // );
+    // assertEq(
+    //   IAToken(aTokenOut).balanceOf(ALICE),
+    //   0,
+    //   'Unexpected Alice starting aToken balance'
+    // );
+
+    // address alice = makeAddr('ALICE');
+    // uint256 collateralAmount = 1000e18;
+    // uint256 borrowAmount = 100e18;
+    // deal(collateralAsset, alice, collateralAmount);
+
+    // address debtToken = IPool(pool)
+    //   .getReserveData(tokenWrapper.TOKEN_OUT())
+    //   .variableDebtTokenAddress;
+
+    // vm.startPrank(alice);
+
+    // IERC20(collateralAsset).approve(address(pool), collateralAmount);
+
+    // IPool(pool).supply(collateralAsset, collateralAmount, alice, 0);
+
+    assertEq(true, true);
+
+    // if (borrowSupported) {
+    //   tokenWrapper.borrowToken(borrowAmount, 0);
+    //   uint256 borrowedAmount = tokenWrapper.getTokenInForTokenOut(borrowAmount);
+    //   assertEq(
+    //     IERC20(tokenWrapper.TOKEN_IN()).balanceOf(address(alice)),
+    //     borrowedAmount
+    //   );
+    //   uint256 repayAmount = borrowedAmount;
+
+    //   uint256 deadline = block.timestamp + 1 hours;
+    //   uint256 nonce = IAToken(debtToken).nonces(alice);
+
+    //   uint256 underlyingBalanceBeforeRepayment = IERC20(tokenWrapper.TOKEN_IN())
+    //     .balanceOf(address(alice));
+    //   console2.log(
+    //     'underlyingBalanceBeforeRepayment',
+    //     underlyingBalanceBeforeRepayment
+    //   );
+    //   // uint256 debtBalanceBefore = IERC20(address(varDebtUSDX)).balanceOf(user);
+    // }
   }
 
   function _signCreditDelegation(

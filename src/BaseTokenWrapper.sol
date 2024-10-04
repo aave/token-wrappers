@@ -137,6 +137,27 @@ abstract contract BaseTokenWrapper is Ownable, IBaseTokenWrapper {
     _borrowToken(amount, msg.sender, referralCode);
   }
 
+  // @inheritdoc IBaseTokenWrapper
+  function repayWithPermit(
+    uint256 amount,
+    address onBehalfOf,
+    PermitSignature calldata signature
+  ) external virtual returns (uint256) {
+    // explicitly left try-catch block blank to protect users from permit griefing
+    try
+      IERC20WithPermit(TOKEN_IN).permit(
+        msg.sender,
+        address(this),
+        amount,
+        signature.deadline,
+        signature.v,
+        signature.r,
+        signature.s
+      )
+    {} catch {}
+    return _repayToken(amount, onBehalfOf);
+  }
+
   /// @inheritdoc IBaseTokenWrapper
   function rescueTokens(
     IERC20 token,
@@ -238,6 +259,23 @@ abstract contract BaseTokenWrapper is Ownable, IBaseTokenWrapper {
       balanceAfterBorrow - balanceBeforeBorrow
     );
     IERC20(TOKEN_IN).transfer(onBehalfOf, amountIn);
+  }
+
+  function _repayToken(
+    uint256 amount,
+    address onBehalfOf
+  ) internal returns (uint256) {
+    require(amount > 0, 'INSUFFICIENT_AMOUNT_TO_REPAY');
+
+    IERC20(TOKEN_IN).safeTransferFrom(msg.sender, address(this), amount);
+    uint256 amountWrapped = _wrapTokenIn(amount);
+    require(amountWrapped > 0, 'INSUFFICIENT_WRAPPED_TOKEN_RECEIVED');
+
+    SafeERC20.safeApprove(IERC20(TOKEN_OUT), address(POOL), amountWrapped);
+    POOL.repay(TOKEN_OUT, amountWrapped, 2, onBehalfOf);
+
+    SafeERC20.safeApprove(IERC20(TOKEN_OUT), address(POOL), 0);
+    return amountWrapped;
   }
 
   /**
