@@ -138,6 +138,14 @@ abstract contract BaseTokenWrapper is Ownable, IBaseTokenWrapper {
   }
 
   // @inheritdoc IBaseTokenWrapper
+  function repayToken(
+    uint256 amount,
+    address onBehalfOf
+  ) external virtual returns (uint256) {
+    return _repayToken(amount, onBehalfOf);
+  }
+
+  // @inheritdoc IBaseTokenWrapper
   function repayWithPermit(
     uint256 amount,
     address onBehalfOf,

@@ -84,6 +84,17 @@ interface IBaseTokenWrapper {
    * @notice Repays token to the Pool, wraps it, and sends it to the pool for repayment
    * @param amount The amount of token to repay
    * @param onBehalfOf The address that will will repay the tokens
+   * @return The final amount repaied to the Pool, post-unwrapping
+   */
+  function repayToken(
+    uint256 amount,
+    address onBehalfOf
+  ) external returns (uint256);
+
+  /**
+   * @notice Repays token to the Pool, wraps it, and sends it to the pool for repayment
+   * @param amount The amount of token to repay
+   * @param onBehalfOf The address that will will repay the tokens
    * @param signature The EIP-712 signature data used for permit
    * @return The final amount repaied to the Pool, post-unwrapping
    */

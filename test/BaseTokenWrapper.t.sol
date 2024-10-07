@@ -915,6 +915,74 @@ abstract contract BaseTokenWrapperTest is Test {
     vm.stopPrank();
   }
 
+  function testPartialRepayToken() public {
+    uint256 collateralAmount = 1000e18;
+    uint256 borrowAmount = 100e18;
+    uint256 partialRepayAmount = 60e18; // Repay 60% of the borrowed amount
+    deal(collateralAsset, ALICE, collateralAmount);
+
+    address debtToken = IPool(pool)
+      .getReserveData(tokenWrapper.TOKEN_OUT())
+      .variableDebtTokenAddress;
+    vm.startPrank(ALICE);
+
+    ICreditDelegationToken(debtToken).approveDelegation(
+      address(tokenWrapper),
+      borrowAmount
+    );
+
+    IERC20(collateralAsset).approve(address(pool), collateralAmount);
+    IPool(pool).supply(collateralAsset, collateralAmount, ALICE, 0);
+
+    if (borrowSupported) {
+      tokenWrapper.borrowToken(borrowAmount, 0);
+      uint256 borrowedAmount = tokenWrapper.getTokenInForTokenOut(borrowAmount);
+      assertEq(
+        IERC20(tokenWrapper.TOKEN_IN()).balanceOf(address(ALICE)),
+        borrowedAmount
+      );
+
+      vm.warp(block.timestamp + 1 days);
+
+      uint256 underlyingBalanceBeforeRepayment = IERC20(tokenWrapper.TOKEN_IN())
+        .balanceOf(address(ALICE));
+
+      uint256 debtBeforeRepayment = IERC20(debtToken).balanceOf(address(ALICE));
+
+      IERC20(tokenWrapper.TOKEN_IN()).approve(
+        address(tokenWrapper),
+        partialRepayAmount
+      );
+
+      uint256 amountRepaid = tokenWrapper.repayToken(partialRepayAmount, ALICE);
+
+      uint256 underlyingBalanceAfterRepayment = IERC20(tokenWrapper.TOKEN_IN())
+        .balanceOf(address(ALICE));
+      uint256 debtAfterRepayment = IERC20(debtToken).balanceOf(address(ALICE));
+
+      assertApproxEqRel(
+        underlyingBalanceBeforeRepayment - underlyingBalanceAfterRepayment,
+        partialRepayAmount,
+        0.001e18 // 0.1% tolerance
+      );
+
+      assertApproxEqRel(
+        debtBeforeRepayment - debtAfterRepayment,
+        amountRepaid,
+        0.001e18 // 0.1% tolerance
+      );
+
+      assertTrue(debtAfterRepayment > 0, 'Debt should not be fully repaid');
+
+      assertApproxEqRel(
+        amountRepaid,
+        partialRepayAmount,
+        0.001e18 // 0.1% tolerance
+      );
+    }
+    vm.stopPrank();
+  }
+
   function testRepayTokenWithPermit() public {
     uint256 collateralAmount = 1000e18;
     uint256 borrowAmount = 100e18;
@@ -969,12 +1037,94 @@ abstract contract BaseTokenWrapperTest is Test {
 
       tokenWrapper.repayWithPermit(repayAmount, ALICE, signature);
       vm.stopPrank();
-
       assertEq(
         IERC20(tokenWrapper.TOKEN_OUT()).balanceOf(ALICE),
         underlyingBalanceBeforeRepayment - repayAmount
       );
     }
+  }
+
+  function testPartialRepayTokenWithPermit() public {
+    uint256 collateralAmount = 1000e18;
+    uint256 borrowAmount = 100e18;
+    uint256 partialRepayAmount = 60e18; // Repay 60% of the borrowed amount
+    deal(collateralAsset, ALICE, collateralAmount);
+
+    address debtToken = IPool(pool)
+      .getReserveData(tokenWrapper.TOKEN_OUT())
+      .variableDebtTokenAddress;
+    vm.startPrank(ALICE);
+
+    ICreditDelegationToken(debtToken).approveDelegation(
+      address(tokenWrapper),
+      borrowAmount
+    );
+
+    IERC20(collateralAsset).approve(address(pool), collateralAmount);
+    IPool(pool).supply(collateralAsset, collateralAmount, ALICE, 0);
+
+    if (borrowSupported) {
+      tokenWrapper.borrowToken(borrowAmount, 0);
+      uint256 borrowedAmount = tokenWrapper.getTokenInForTokenOut(borrowAmount);
+      assertEq(
+        IERC20(tokenWrapper.TOKEN_IN()).balanceOf(address(ALICE)),
+        borrowedAmount
+      );
+
+      vm.warp(block.timestamp + 1 days);
+
+      uint256 underlyingBalanceBeforeRepayment = IERC20(tokenWrapper.TOKEN_IN())
+        .balanceOf(address(ALICE));
+
+      uint256 debtBeforeRepayment = IERC20(debtToken).balanceOf(address(ALICE));
+
+      SigUtils.Permit memory permit = SigUtils.Permit({
+        owner: address(ALICE),
+        spender: address(tokenWrapper),
+        value: partialRepayAmount,
+        nonce: IERC2612(tokenWrapper.TOKEN_IN()).nonces(ALICE),
+        deadline: block.timestamp + 1 days
+      });
+
+      bytes32 digest = SigUtils.getTypedDataHash(
+        permit,
+        IERC2612(tokenWrapper.TOKEN_IN()).DOMAIN_SEPARATOR()
+      );
+      (uint8 v, bytes32 r, bytes32 s) = vm.sign(ALICE_KEY, digest);
+
+      IBaseTokenWrapper.PermitSignature memory signature = IBaseTokenWrapper
+        .PermitSignature({
+          deadline: block.timestamp + 1 days,
+          v: v,
+          r: r,
+          s: s
+        });
+
+      tokenWrapper.repayWithPermit(partialRepayAmount, ALICE, signature);
+
+      uint256 underlyingBalanceAfterRepayment = IERC20(tokenWrapper.TOKEN_IN())
+        .balanceOf(address(ALICE));
+      uint256 debtAfterRepayment = IERC20(debtToken).balanceOf(address(ALICE));
+
+      assertApproxEqRel(
+        underlyingBalanceBeforeRepayment - underlyingBalanceAfterRepayment,
+        partialRepayAmount,
+        0.001e18 // 0.1% tolerance
+      );
+
+      assertApproxEqRel(
+        debtBeforeRepayment - debtAfterRepayment,
+        partialRepayAmount,
+        0.001e18 // 0.1% tolerance
+      );
+      assertTrue(debtAfterRepayment > 0, 'Debt should not be fully repaid');
+    }
+    vm.stopPrank();
+  }
+
+  function testRepayTokenZeroAmount() public {
+    vm.expectRevert('INSUFFICIENT_AMOUNT_TO_REPAY');
+    tokenWrapper.repayToken(0, address(this));
   }
 
   function _signCreditDelegation(
