@@ -765,13 +765,12 @@ abstract contract BaseTokenWrapperTest is Test {
       .getReserveData(tokenWrapper.TOKEN_OUT())
       .variableDebtTokenAddress;
 
-    address alice = makeAddr('ALICE');
-    deal(collateralAsset, alice, collateralAmount);
+    deal(collateralAsset, ALICE, collateralAmount);
 
-    vm.startPrank(alice);
+    vm.startPrank(ALICE);
 
     IERC20(collateralAsset).approve(address(pool), collateralAmount);
-    IPool(pool).supply(collateralAsset, collateralAmount, alice, 0);
+    IPool(pool).supply(collateralAsset, collateralAmount, ALICE, 0);
 
     ICreditDelegationToken(debtToken).approveDelegation(
       address(tokenWrapper),
@@ -782,7 +781,7 @@ abstract contract BaseTokenWrapperTest is Test {
       tokenWrapper.borrowToken(borrowAmount, 0);
       uint256 borrowedAmount = tokenWrapper.getTokenInForTokenOut(borrowAmount);
       assertEq(
-        IERC20(tokenWrapper.TOKEN_IN()).balanceOf(address(alice)),
+        IERC20(tokenWrapper.TOKEN_IN()).balanceOf(address(ALICE)),
         borrowedAmount
       );
     } else {
@@ -790,6 +789,34 @@ abstract contract BaseTokenWrapperTest is Test {
       tokenWrapper.borrowToken(borrowAmount, 0);
     }
     vm.stopPrank();
+  }
+
+  function testBorrowTokenZeroAmount() public {
+    uint256 collateralAmount = 1000e18;
+    uint256 borrowAmount = 0;
+    address debtToken = IPool(pool)
+      .getReserveData(tokenWrapper.TOKEN_OUT())
+      .variableDebtTokenAddress;
+
+    deal(collateralAsset, ALICE, collateralAmount);
+
+    vm.startPrank(ALICE);
+
+    IERC20(collateralAsset).approve(address(pool), collateralAmount);
+    IPool(pool).supply(collateralAsset, collateralAmount, ALICE, 0);
+
+    ICreditDelegationToken(debtToken).approveDelegation(
+      address(tokenWrapper),
+      borrowAmount
+    );
+
+    if (borrowSupported) {
+      vm.expectRevert('INSUFFICIENT_AMOUNT_TO_BORROW');
+      tokenWrapper.borrowToken(borrowAmount, 0);
+    } else {
+      vm.expectRevert();
+      tokenWrapper.borrowToken(borrowAmount, 0);
+    }
   }
 
   function testBorrowTokenWithPermit() public {
@@ -806,7 +833,6 @@ abstract contract BaseTokenWrapperTest is Test {
     vm.startPrank(alice);
 
     IERC20(collateralAsset).approve(address(pool), collateralAmount);
-
     IPool(pool).supply(collateralAsset, collateralAmount, alice, 0);
 
     uint256 deadline = block.timestamp + 1 hours;
@@ -853,7 +879,6 @@ abstract contract BaseTokenWrapperTest is Test {
     vm.startPrank(alice);
 
     IERC20(collateralAsset).approve(address(pool), collateralAmount);
-
     IPool(pool).supply(collateralAsset, collateralAmount, alice, 0);
 
     uint256 deadline = block.timestamp + 1 hours;
@@ -878,6 +903,129 @@ abstract contract BaseTokenWrapperTest is Test {
     }
   }
 
+  function testBorrowTokenWithPermitDeadlineExpired() public {
+    uint256 borrowAmount = 100e18;
+    uint256 collateralAmount = 1000e18;
+
+    (address alice, uint256 userPrivateKey) = makeAddrAndKey('ALICE');
+    deal(collateralAsset, alice, collateralAmount);
+
+    address debtToken = IPool(pool)
+      .getReserveData(tokenWrapper.TOKEN_OUT())
+      .variableDebtTokenAddress;
+
+    vm.startPrank(alice);
+
+    IERC20(collateralAsset).approve(address(pool), collateralAmount);
+    IPool(pool).supply(collateralAsset, collateralAmount, alice, 0);
+
+    uint256 deadline = block.timestamp - 1;
+    uint256 nonce = IAToken(debtToken).nonces(alice);
+
+    (uint8 v, bytes32 r, bytes32 s) = _signCreditDelegation(
+      userPrivateKey,
+      address(tokenWrapper),
+      borrowAmount,
+      nonce,
+      deadline,
+      debtToken
+    );
+    IBaseTokenWrapper.PermitSignature memory signature = IBaseTokenWrapper
+      .PermitSignature({deadline: deadline, v: v, r: r, s: s});
+
+    if (borrowSupported) {
+      vm.expectRevert();
+      tokenWrapper.borrowTokenWithPermit(borrowAmount, 1, signature);
+    } else {
+      vm.expectRevert();
+      tokenWrapper.borrowTokenWithPermit(borrowAmount, 1, signature);
+    }
+  }
+
+  function testBorrowTokenMoreThanUnwrappableInVault() public {
+    address vault = tokenWrapper.TOKEN_OUT();
+    uint256 vaultUnderlying = IERC20(tokenWrapper.TOKEN_IN()).balanceOf(vault);
+    uint256 borrowAmount = tokenWrapper.getTokenOutForTokenIn(vaultUnderlying) *
+      2;
+    uint256 collateralAmount = 1000e18;
+
+    deal(collateralAsset, ALICE, collateralAmount);
+
+    address debtToken = IPool(pool)
+      .getReserveData(tokenWrapper.TOKEN_OUT())
+      .variableDebtTokenAddress;
+
+    vm.startPrank(ALICE);
+
+    IERC20(collateralAsset).approve(address(pool), collateralAmount);
+    IPool(pool).supply(collateralAsset, collateralAmount, ALICE, 0);
+
+    ICreditDelegationToken(debtToken).approveDelegation(
+      address(tokenWrapper),
+      borrowAmount
+    );
+
+    if (borrowSupported) {
+      vm.expectRevert();
+      tokenWrapper.borrowToken(borrowAmount, 0);
+    } else {
+      vm.expectRevert();
+      tokenWrapper.borrowToken(borrowAmount, 0);
+    }
+  }
+
+  function testBorrowTokenInsufficientCollateral() public {
+    uint256 borrowAmount = 100e18;
+
+    address debtToken = IPool(pool)
+      .getReserveData(tokenWrapper.TOKEN_OUT())
+      .variableDebtTokenAddress;
+
+    vm.startPrank(ALICE);
+
+    ICreditDelegationToken(debtToken).approveDelegation(
+      address(tokenWrapper),
+      borrowAmount
+    );
+
+    if (borrowSupported) {
+      vm.expectRevert();
+      tokenWrapper.borrowToken(borrowAmount, 0);
+    } else {
+      vm.expectRevert();
+      tokenWrapper.borrowToken(borrowAmount, 0);
+    }
+  }
+
+  function testBorrowTokenInsufficientDelegation() public {
+    uint256 borrowAmount = 100e18;
+    uint256 collateralAmount = 1000e18;
+
+    address debtToken = IPool(pool)
+      .getReserveData(tokenWrapper.TOKEN_OUT())
+      .variableDebtTokenAddress;
+
+    deal(collateralAsset, ALICE, collateralAmount);
+
+    vm.startPrank(ALICE);
+
+    IERC20(collateralAsset).approve(address(pool), collateralAmount);
+    IPool(pool).supply(collateralAsset, collateralAmount, ALICE, 0);
+
+    ICreditDelegationToken(debtToken).approveDelegation(
+      address(tokenWrapper),
+      borrowAmount - 1
+    );
+
+    if (borrowSupported) {
+      vm.expectRevert();
+      tokenWrapper.borrowToken(borrowAmount, 0);
+    } else {
+      vm.expectRevert();
+      tokenWrapper.borrowToken(borrowAmount, 0);
+    }
+  }
+
   function testFuzzBorrowToken(uint256 borrowAmount) public {
     borrowAmount = bound(borrowAmount, 1, MAX_DEAL_AMOUNT);
     borrowAmount *= 10 ** tokenInDecimals;
@@ -887,13 +1035,12 @@ abstract contract BaseTokenWrapperTest is Test {
       .getReserveData(tokenWrapper.TOKEN_OUT())
       .variableDebtTokenAddress;
 
-    address alice = makeAddr('ALICE');
-    deal(collateralAsset, alice, collateralAmount);
+    deal(collateralAsset, ALICE, collateralAmount);
 
-    vm.startPrank(alice);
+    vm.startPrank(ALICE);
 
     IERC20(collateralAsset).approve(address(pool), collateralAmount);
-    IPool(pool).supply(collateralAsset, collateralAmount, alice, 0);
+    IPool(pool).supply(collateralAsset, collateralAmount, ALICE, 0);
 
     ICreditDelegationToken(debtToken).approveDelegation(
       address(tokenWrapper),
@@ -904,7 +1051,7 @@ abstract contract BaseTokenWrapperTest is Test {
       tokenWrapper.borrowToken(borrowAmount, 0);
       uint256 borrowedAmount = tokenWrapper.getTokenInForTokenOut(borrowAmount);
       assertEq(
-        IERC20(tokenWrapper.TOKEN_IN()).balanceOf(address(alice)),
+        IERC20(tokenWrapper.TOKEN_IN()).balanceOf(ALICE),
         borrowedAmount
       );
     } else {
