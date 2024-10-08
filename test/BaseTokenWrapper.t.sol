@@ -879,10 +879,15 @@ abstract contract BaseTokenWrapperTest is Test {
     }
   }
 
-  function testFuzzBorrowToken(uint256 borrowAmount) public {
+  function testFuzzRepayToken(
+    uint256 borrowAmount,
+    uint256 repayAmount
+  ) public {
     borrowAmount = bound(borrowAmount, 1, MAX_DEAL_AMOUNT);
     borrowAmount *= 10 ** tokenInDecimals;
     uint256 collateralAmount = borrowAmount * 10;
+
+    repayAmount = bound(repayAmount, 1e6, borrowAmount);
 
     address debtToken = IPool(pool)
       .getReserveData(tokenWrapper.TOKEN_OUT())
@@ -906,7 +911,38 @@ abstract contract BaseTokenWrapperTest is Test {
       uint256 borrowedAmount = tokenWrapper.getTokenInForTokenOut(borrowAmount);
       assertEq(
         IERC20(tokenWrapper.TOKEN_IN()).balanceOf(address(alice)),
-        borrowedAmount
+        borrowedAmount,
+        'Borrowed amount mismatch'
+      );
+
+      vm.warp(block.timestamp + 1 days);
+
+      uint256 debtBefore = IERC20(debtToken).balanceOf(address(alice));
+      deal(tokenWrapper.TOKEN_IN(), alice, repayAmount);
+      IERC20(tokenWrapper.TOKEN_IN()).approve(
+        address(tokenWrapper),
+        repayAmount
+      );
+
+      uint256 actualRepaidAmount = tokenWrapper.repayToken(repayAmount, alice);
+
+      uint256 debtAfter = IERC20(debtToken).balanceOf(address(alice));
+      assertLt(debtAfter, debtBefore, 'Debt should decrease after repayment');
+
+      uint256 expectedRepaidAmount = tokenWrapper.getTokenOutForTokenIn(
+        repayAmount
+      );
+      assertApproxEqRel(
+        actualRepaidAmount,
+        expectedRepaidAmount,
+        0.01e18, // 1% tolerance
+        'Repaid amount should match expected amount'
+      );
+
+      assertLe(
+        IERC20(tokenWrapper.TOKEN_IN()).balanceOf(address(alice)),
+        borrowedAmount - repayAmount,
+        'Token balance after repayment is incorrect'
       );
     } else {
       vm.expectRevert();
