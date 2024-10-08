@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity ^0.8.10;
 
-import {console2} from 'forge-std/console2.sol';
 import {Test} from 'forge-std/Test.sol';
 import {IERC20} from 'aave-v3-core/contracts/dependencies/openzeppelin/contracts/IERC20.sol';
 import {IAToken} from 'aave-v3-core/contracts/interfaces/IAToken.sol';
