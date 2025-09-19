@@ -1,22 +1,26 @@
 // SPDX-License-Identifier: AGPL-3.0
 pragma solidity ^0.8.10;
 
-import {IERC20} from 'aave-v3-core/contracts/dependencies/openzeppelin/contracts/IERC20.sol';
+import {AaveV3Ethereum, AaveV3EthereumAssets} from 'aave-address-book/AaveV3Ethereum.sol';
 import {BaseTokenWrapperTest} from './BaseTokenWrapper.t.sol';
-import {SavingsDaiTokenWrapper} from '../src/SavingsDaiTokenWrapper.sol';
+
+import {SavingsDaiTokenWrapper} from 'src/SavingsDaiTokenWrapper.sol';
 
 contract SavingsDaiTokenWrapperTest is BaseTokenWrapperTest {
-  address constant DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
-  address constant SDAI = 0x83F20F44975D03b1b09e64809B757c47f942BEeA;
-  address constant ASDAI = 0x4C612E3B15b96Ff9A6faED838F8d07d479a8dD4c;
+  address constant DAI = AaveV3EthereumAssets.DAI_UNDERLYING;
+  address constant SDAI = AaveV3EthereumAssets.sDAI_UNDERLYING;
+  address constant ASDAI = AaveV3EthereumAssets.sDAI_A_TOKEN;
+  address constant WETH = AaveV3EthereumAssets.WETH_UNDERLYING;
 
   function setUp() public {
-    vm.createSelectFork(vm.envString('ETH_RPC_URL'));
-    pool = 0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
+    vm.createSelectFork(vm.envString('ETH_RPC_URL'), 20784588);
+    pool = address(AaveV3Ethereum.POOL);
     tokenWrapper = new SavingsDaiTokenWrapper(DAI, SDAI, pool, OWNER);
     aTokenOut = ASDAI;
     tokenInDecimals = 18;
     permitSupported = false;
+    collateralAsset = AaveV3EthereumAssets.WETH_UNDERLYING;
+    borrowSupported = false;
   }
 
   function testConstructor() public override {
@@ -30,15 +34,5 @@ contract SavingsDaiTokenWrapperTest is BaseTokenWrapperTest {
     assertEq(tempTokenWrapper.TOKEN_OUT(), SDAI, 'Unexpected TOKEN_OUT');
     assertEq(address(tempTokenWrapper.POOL()), pool, 'Unexpected POOL');
     assertEq(tempTokenWrapper.owner(), OWNER, 'Unexpected owner');
-    assertEq(
-      IERC20(SDAI).allowance(address(tempTokenWrapper), pool),
-      type(uint256).max,
-      'Unexpected TOKEN_OUT allowance'
-    );
-    assertEq(
-      IERC20(DAI).allowance(address(tempTokenWrapper), SDAI),
-      type(uint256).max,
-      'Unexpected TOKEN_IN allowance'
-    );
   }
 }
