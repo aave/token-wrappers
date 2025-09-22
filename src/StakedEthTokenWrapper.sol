@@ -8,7 +8,7 @@ import {BaseTokenWrapper} from './BaseTokenWrapper.sol';
 /**
  * @title StakedEthTokenWrapper
  * @author Aave
- * @notice Contract to wrap stETH to wstETH on supply to Aave, or unwrap from wstETH to ETH on withdrawal
+ * @notice Contract to wrap stETH to wstETH on supply to Aave, or unwrap from wstETH to stETH on withdrawal
  */
 contract StakedEthTokenWrapper is BaseTokenWrapper {
   /**
